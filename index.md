@@ -10,7 +10,7 @@ Releases
 
 {%- for dl in site.static_files -%}
 {%- if dl.path contains '/downloads/refs/tags/' %}
-- [{{ dl.path | remove_first: "/downloads/refs/tags/" }}]({{ dl.path | relative_url }})
+- [{{ dl.path | remove_first: "/downloads/refs/tags/" | remove: "/ddterm@amezin.github.com.shell-extension.zip" }}]({{ dl.path | relative_url }})
 {% endif %}
 {% endfor %}
 
@@ -19,6 +19,6 @@ Branches
 
 {%- for dl in site.static_files -%}
 {%- if dl.path contains '/downloads/refs/heads/' %}
-- [{{ dl.path | remove_first: "/downloads/refs/heads/" }}]({{ dl.path | relative_url }})
+- [{{ dl.path | remove_first: "/downloads/refs/heads/" | remove: "/ddterm@amezin.github.com.shell-extension.zip" }}]({{ dl.path | relative_url }})
 {% endif %}
 {% endfor %}
