@@ -5,8 +5,13 @@
 layout: default
 ---
 
+{% include_relative README.md %}
+
+Prebuilt extension packages
+===========================
+
 Releases
-========
+--------
 
 {%- for dl in site.static_files -%}
 {%- if dl.path contains '/downloads/refs/tags/' %}
@@ -15,7 +20,7 @@ Releases
 {% endfor %}
 
 Branches
-========
+--------
 
 {%- for dl in site.static_files -%}
 {%- if dl.path contains '/downloads/refs/heads/' %}
