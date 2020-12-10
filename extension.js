@@ -26,6 +26,12 @@ const SUBPROCESS_ARGV = [Me.dir.get_child('com.github.amezin.ddterm').get_path()
 const USE_WAYLAND_CLIENT = Meta.WaylandClient && Meta.is_wayland_compositor();
 const SIGINT = 2;
 
+const APP_INFO = Gio.AppInfo.create_from_commandline(
+    'com.github.amezin.ddterm --undecorated',
+    'Drop Down Terminal',
+    Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION
+);
+
 function init() {
 }
 
@@ -93,24 +99,36 @@ function spawn_app() {
     const context = global.create_app_launch_context(0, -1);
     subprocess_launcher.set_environ(context.get_environment());
 
-    if (settings.get_boolean('force-x11-gdk-backend'))
-        subprocess_launcher.setenv('GDK_BACKEND', 'x11', true);
+    const startup_notification_id = context.get_startup_notify_id(APP_INFO, []);
+    if (startup_notification_id)
+        subprocess_launcher.setenv('DESKTOP_STARTUP_ID', startup_notification_id, true);
 
-    if (USE_WAYLAND_CLIENT && subprocess_launcher.getenv('GDK_BACKEND') !== 'x11') {
-        wayland_client = Meta.WaylandClient.new(subprocess_launcher);
-        subprocess = wayland_client.spawnv(global.display, SUBPROCESS_ARGV);
-    } else {
-        subprocess = subprocess_launcher.spawnv(SUBPROCESS_ARGV);
+    const subprocess_terminated = source => {
+        if (source === subprocess) {
+            subprocess = null;
+            wayland_client = null;
+        }
+
+        if (startup_notification_id)
+            context.launch_failed(startup_notification_id);
+    };
+
+    try {
+        if (settings.get_boolean('force-x11-gdk-backend'))
+            subprocess_launcher.setenv('GDK_BACKEND', 'x11', true);
+
+        if (USE_WAYLAND_CLIENT && subprocess_launcher.getenv('GDK_BACKEND') !== 'x11') {
+            wayland_client = Meta.WaylandClient.new(subprocess_launcher);
+            subprocess = wayland_client.spawnv(global.display, SUBPROCESS_ARGV);
+        } else {
+            subprocess = subprocess_launcher.spawnv(SUBPROCESS_ARGV);
+        }
+    } catch {
+        subprocess_terminated(subprocess);
+        return;
     }
 
     subprocess.wait_async(null, subprocess_terminated);
-}
-
-function subprocess_terminated(source) {
-    if (subprocess === source) {
-        subprocess = null;
-        wayland_client = null;
-    }
 }
 
 function toggle() {
