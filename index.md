@@ -5,6 +5,9 @@
 layout: default
 ---
 
+* toc
+{:toc}
+
 {% include_relative README.md %}
 
 Prebuilt extension packages
