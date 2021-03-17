@@ -24,7 +24,7 @@ github_username: amezin
 
 # Build settings
 markdown: kramdown
-theme: jekyll-theme-hacker
+theme: jekyll-theme-primer
 # https://docs.github.com/en/free-pro-team@latest/github/working-with-github-pages/about-github-pages-and-jekyll#plugins
 plugins:
   - jekyll-coffeescript
