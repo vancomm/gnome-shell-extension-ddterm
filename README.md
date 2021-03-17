@@ -18,7 +18,7 @@ Inspired by
 
 - `Preferences` window with a lot of different settings
 
-<img src="docs/prefs.gif" width="877" height="579" />
+<img src="docs/prefs.gif" />
 
 ## Installing
 
@@ -47,7 +47,7 @@ Download it, then run:
 #### Restart GNOME Shell
 
 After that, restart GNOME Shell - log out, log in back. On X11 you can restart
-the shell by pressing `Alt+F2`, `r`, `Enter`.
+the shell by pressing <kbd>Alt+F2</kbd>, <kbd>r</kbd>, <kbd>Enter</kbd>.
 
 #### Enable extension
 
