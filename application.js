@@ -54,6 +54,9 @@ const Application = GObject.registerClass(
             this.add_main_option(
                 'reset-gdk-backend', 0, GLib.OptionFlags.NONE, GLib.OptionArg.STRING, 'Set GDK_BACKEND variable for subprocesses', null
             );
+            this.add_main_option(
+                'toggle', 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, 'Show/hide terminal window', null
+            );
 
             this.env_gdk_backend = null;
             this.unset_gdk_backend = false;
@@ -61,6 +64,7 @@ const Application = GObject.registerClass(
             this.connect('startup', this.startup.bind(this));
             this.connect('activate', this.activate.bind(this));
             this.connect('handle-local-options', this.handle_local_options.bind(this));
+            this.connect('command-line', this.handle_command_line.bind(this));
 
             this.window = null;
             this.prefs_dialog = null;
@@ -171,6 +175,23 @@ const Application = GObject.registerClass(
             return -1;
         }
 
+        handle_command_line(_, command_line) {
+            const options = command_line.get_options_dict();
+
+            if (options.contains('toggle'))
+                this.activate_action('toggle', null);
+            else
+                this.activate();
+
+            // Otherwise secondary application instances hang for a long time
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                System.gc();
+                return GLib.SOURCE_REMOVE;
+            });
+
+            return 0;
+        }
+
         preferences() {
             if (this.prefs_dialog === null) {
                 this.prefs_dialog = new imports.prefsdialog.PrefsDialog({
@@ -227,6 +248,6 @@ GLib.set_application_name('Drop Down Terminal');
 
 const app = new Application({
     application_id: 'com.github.amezin.ddterm',
-    flags: Gio.ApplicationFlags.ALLOW_REPLACEMENT,
+    flags: Gio.ApplicationFlags.ALLOW_REPLACEMENT | Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
 });
 app.run([System.programInvocationName].concat(ARGV));
