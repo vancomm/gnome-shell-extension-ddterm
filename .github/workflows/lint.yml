@@ -30,3 +30,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: xvfb-run make gtk-builder-validate
+
+  shellcheck:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: amezin/action-shellcheck@master
