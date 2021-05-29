@@ -676,7 +676,7 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
         <property name="visible">True</property>
         <property name="can-focus">True</property>
         <child>
-          <!-- n-columns=2 n-rows=16 -->
+          <!-- n-columns=2 n-rows=14 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -686,35 +686,6 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
             <property name="margin-bottom">10</property>
             <property name="row-spacing">10</property>
             <property name="column-spacing">10</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Theme _variant:</property>
-                <property name="use-underline">True</property>
-                <property name="mnemonic-widget">theme_variant_combo</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="theme_variant_combo">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <items>
-                  <item id="system" translatable="yes">Default</item>
-                  <item id="light" translatable="yes">Light</item>
-                  <item id="dark" translatable="yes">Dark</item>
-                </items>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
             <child>
               <object class="GtkCheckButton" id="window_above_check">
                 <property name="label" translatable="yes">_Above all windows</property>
@@ -727,7 +698,7 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">5</property>
+                <property name="top-attach">3</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -743,37 +714,8 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">6</property>
+                <property name="top-attach">4</property>
                 <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">_Background opacity:</property>
-                <property name="use-underline">True</property>
-                <property name="mnemonic-widget">opacity_scale</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkScale" id="opacity_scale">
-                <property name="width-request">200</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="adjustment">opacity_adjustment</property>
-                <property name="show-fill-level">True</property>
-                <property name="round-digits">2</property>
-                <property name="digits">2</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -788,7 +730,7 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">9</property>
+                <property name="top-attach">7</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -804,7 +746,7 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">5</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -820,7 +762,7 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">8</property>
+                <property name="top-attach">6</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -836,7 +778,7 @@ along with ddterm GNOME Shell extension.  If not, see <http://www.gnu.org/licens
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">13</property>
+                <property name="top-attach">11</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -853,7 +795,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">14</property>
+                <property name="top-attach">12</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -868,7 +810,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">15</property>
+                <property name="top-attach">13</property>
               </packing>
             </child>
             <child>
@@ -892,7 +834,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">15</property>
+                <property name="top-attach">13</property>
               </packing>
             </child>
             <child>
@@ -906,7 +848,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -920,7 +862,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">3</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -935,7 +877,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">2</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -950,7 +892,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">8</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -963,7 +905,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>
@@ -975,7 +917,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">12</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
             <child>
@@ -1005,7 +947,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>
@@ -1035,7 +977,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">12</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
             <child>
@@ -1047,7 +989,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
@@ -1063,7 +1005,7 @@ You'll have to close all tabs for this option to take effect.</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
           </object>
@@ -1610,7 +1552,7 @@ Following helpers are available:
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=5 -->
+          <!-- n-columns=2 n-rows=7 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -1632,7 +1574,7 @@ Following helpers are available:
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
+                <property name="top-attach">2</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -1938,7 +1880,7 @@ Following helpers are available:
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
+                <property name="top-attach">3</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -1953,7 +1895,7 @@ Following helpers are available:
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
@@ -1970,7 +1912,7 @@ Following helpers are available:
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
@@ -2193,7 +2135,7 @@ Following helpers are available:
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
+                <property name="top-attach">5</property>
                 <property name="width">2</property>
               </packing>
             </child>
@@ -2209,8 +2151,64 @@ Following helpers are available:
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">6</property>
                 <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScale" id="opacity_scale">
+                <property name="width-request">200</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="adjustment">opacity_adjustment</property>
+                <property name="show-fill-level">True</property>
+                <property name="round-digits">2</property>
+                <property name="digits">2</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">_Background opacity:</property>
+                <property name="use-underline">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="theme_variant_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <items>
+                  <item id="system" translatable="yes">Default</item>
+                  <item id="light" translatable="yes">Light</item>
+                  <item id="dark" translatable="yes">Dark</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Gtk theme _variant:</property>
+                <property name="use-underline">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
           </object>
