@@ -773,7 +773,7 @@ function handle_maximized_horizontally(win) {
 }
 
 function move_resize_window(win, target_rect) {
-    win.move_resize_frame(false, target_rect.x, target_rect.y, target_rect.width, target_rect.height);
+    win.move_resize_frame(true, target_rect.x, target_rect.y, target_rect.width, target_rect.height);
 }
 
 function set_window_maximized() {
