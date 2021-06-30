@@ -139,7 +139,6 @@ function createPrefsWidgetClass(resource_path, util) {
                     'highlight-colors-set',
                     'use-theme-colors',
                     'bold-is-bright',
-                    'command',
                     'show-scrollbar',
                     'scroll-on-output',
                     'scroll-on-keystroke',
@@ -222,6 +221,18 @@ function createPrefsWidgetClass(resource_path, util) {
 
                 this.settings_bind('custom-command', this.custom_command_entry, 'text');
                 this.spawn_custom_command.bind_property('active', this.custom_command_entry.parent, 'sensitive', GObject.BindingFlags.SYNC_CREATE);
+
+                // https://github.com/amezin/gnome-shell-extension-ddterm/issues/56
+                const command_action = this.settings.create_action('command');
+                if (this.spawn_custom_command.get_group) {
+                    // .get_group() exists only on Gtk 3
+                    // this workaround is necessary only on Gtk 3 too
+                    this.spawn_custom_command.get_group().forEach(radio => {
+                        if (radio.action_target.equal(command_action.get_state()))
+                            radio.active = true;
+                    });
+                }
+                actions.add_action(command_action);
 
                 this.settings_bind('scrollback-unlimited', this.limit_scrollback_check, 'active', Gio.SettingsBindFlags.INVERT_BOOLEAN);
                 this.settings_bind('scrollback-lines', this.scrollback_adjustment, 'value');
