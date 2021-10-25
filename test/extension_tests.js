@@ -502,6 +502,9 @@ async function test_resize_xte(reporter, window_size, window_maximize, window_si
     const target_frame_rect = Extension.window_manager.target_rect_for_workarea_size(workarea, monitor_scale, window_size2);
     const target = resize_point(target_frame_rect, window_pos, monitor_scale);
 
+    // TODO: 'grab-op-begin' isn't emitted on Wayland when simulting mouse with xte.
+    Extension.window_manager.grab = true;
+
     await async_run_process(reporter, ['xte', `mousemove ${initial.x} ${initial.y}`, 'mousedown 1']);
     await wait_window_settle(reporter);
 
@@ -515,7 +518,7 @@ async function test_resize_xte(reporter, window_size, window_maximize, window_si
     await wait_window_settle(reporter);
 
     // TODO: 'grab-op-end' isn't emitted on Wayland when simulting mouse with xte.
-    // For now, just call update_size_setting_on_grab_end()
+    Extension.window_manager.grab = false;
     if (Meta.is_wayland_compositor())
         Extension.window_manager.update_size_setting_on_grab_end(global.display, Extension.window_manager.current_window);
 

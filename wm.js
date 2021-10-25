@@ -19,7 +19,7 @@
 
 'use strict';
 
-const { Clutter, GObject, Gio, Meta } = imports.gi;
+const { Clutter, GLib, GObject, Gio, Meta } = imports.gi;
 const Main = imports.ui.main;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
@@ -35,6 +35,9 @@ var WindowManager = GObject.registerClass(
             ),
             'current-window': GObject.ParamSpec.object(
                 'current-window', '', '', GObject.ParamFlags.READABLE | GObject.ParamFlags.EXPLICIT_NOTIFY, Meta.Window
+            ),
+            'grab': GObject.ParamSpec.boolean(
+                'grab', '', '', GObject.ParamFlags.READWRITE, false
             ),
         },
         Signals: {
@@ -53,6 +56,8 @@ var WindowManager = GObject.registerClass(
             this.current_monitor_scale = 1;
             this.current_target_rect = null;
             this.current_monitor_index = 0;
+            this._grab = false;
+            this._update_window_geometry_later_id = null;
 
             this.show_animation = Clutter.AnimationMode.LINEAR;
             this.hide_animation = Clutter.AnimationMode.LINEAR;
@@ -354,6 +359,13 @@ var WindowManager = GObject.registerClass(
 
             if (this.settings.get_boolean('window-maximize'))
                 win.maximize(Meta.MaximizeFlags.BOTH);
+
+            this.current_window_connections.connect(global.display, 'grab-op-begin', this._update_grab.bind(this));
+            this.current_window_connections.connect(global.display, 'grab-op-end', this._update_grab.bind(this));
+        }
+
+        _update_grab() {
+            this.grab = global.display.get_grab_op() !== Meta.GrabOp.NONE;
         }
 
         _update_window_position() {
@@ -406,13 +418,25 @@ var WindowManager = GObject.registerClass(
             this._update_window_geometry();
         }
 
-        _schedule_geometry_fixup(win) {
-            if (!this._check_current_window(win) || win.get_client_type() !== Meta.WindowClientType.WAYLAND)
+        _update_window_geometry_later() {
+            if (this._update_window_geometry_later_id !== null)
                 return;
 
+            this._update_window_geometry_later_id = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                this._update_window_geometry_later_id = null;
+                this._update_window_geometry();
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+
+        _schedule_geometry_fixup() {
             this.geometry_fixup_connections.disconnect();
-            this.geometry_fixup_connections.connect(win, 'position-changed', this._update_window_geometry.bind(this));
-            this.geometry_fixup_connections.connect(win, 'size-changed', this._update_window_geometry.bind(this));
+
+            if (this.grab)
+                return;
+
+            this.geometry_fixup_connections.connect(this.current_window, 'position-changed', this._update_window_geometry_later.bind(this));
+            this.geometry_fixup_connections.connect(this.current_window, 'size-changed', this._update_window_geometry_later.bind(this));
         }
 
         _unmaximize_done() {
@@ -486,12 +510,10 @@ var WindowManager = GObject.registerClass(
             if (is_maximized === should_maximize)
                 return;
 
-            if (should_maximize) {
+            if (should_maximize)
                 this.current_window.maximize(Meta.MaximizeFlags.BOTH);
-            } else {
+            else
                 this.current_window.unmaximize(this.resize_x ? Meta.MaximizeFlags.HORIZONTAL : Meta.MaximizeFlags.VERTICAL);
-                this._schedule_geometry_fixup(this.current_window);
-            }
         }
 
         _disable_window_maximize_setting() {
@@ -505,8 +527,10 @@ var WindowManager = GObject.registerClass(
             if (!this.current_window)
                 return;
 
-            if (this.settings.get_boolean('window-maximize'))
+            if (this.settings.get_boolean('window-maximize')) {
+                this._schedule_geometry_fixup();
                 return;
+            }
 
             if (this.current_window.maximized_horizontally && this.current_target_rect.width < this.current_workarea.width) {
                 Main.wm.skipNextEffect(this.current_window.get_compositor_private());
@@ -521,6 +545,7 @@ var WindowManager = GObject.registerClass(
             }
 
             this._move_resize_window(this.current_window, this.current_target_rect);
+            this._schedule_geometry_fixup();
 
             if (this.resize_x ? this.current_window.maximized_horizontally : this.current_window.maximized_vertically)
                 this.settings.set_boolean('window-maximize', true);
@@ -545,8 +570,6 @@ var WindowManager = GObject.registerClass(
         }
 
         unmaximize_for_resize(flags) {
-            this.geometry_fixup_connections.disconnect();
-
             if (!this.current_window || !(this.current_window.get_maximized() & flags))
                 return;
 
@@ -556,12 +579,16 @@ var WindowManager = GObject.registerClass(
 
             Main.wm.skipNextEffect(this.current_window.get_compositor_private());
             this.current_window.unmaximize(flags);
-            this._schedule_geometry_fixup(this.current_window);
         }
 
         _release_window(win) {
             if (!win || win !== this.current_window)
                 return;
+
+            if (this._update_window_geometry_later_id !== null) {
+                Meta.later_remove(this._update_window_geometry_later_id);
+                this._update_window_geometry_later_id = null;
+            }
 
             this.current_window_connections.disconnect();
             this.current_window_maximized_connections.disconnect();
@@ -581,6 +608,17 @@ var WindowManager = GObject.registerClass(
 
         get current_window() {
             return this._current_window;
+        }
+
+        get grab() {
+            return this._grab;
+        }
+
+        set grab(value) {
+            this._grab = value;
+
+            if (this.current_window)
+                this._schedule_geometry_fixup();
         }
     }
 );
