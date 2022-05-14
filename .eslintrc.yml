@@ -1,5 +1,6 @@
 extends:
  - ./lint/eslintrc-gjs.yml
+ - plugin:chai-friendly/recommended
 
 rules:
   consistent-return: error

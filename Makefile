@@ -14,6 +14,7 @@ all:
 
 CLEAN :=
 GENERATED_SOURCES :=
+TEST_GENERATED_SOURCES :=
 
 # GSettings schemas
 
@@ -32,6 +33,12 @@ handlebars.js: node_modules/handlebars/dist/handlebars.js
 
 GENERATED_SOURCES += handlebars.js
 CLEAN += handlebars.js
+
+test/chai.js: node_modules/chai/chai.js
+	cp $< $@
+
+TEST_GENERATED_SOURCES += test/chai.js
+CLEAN += test/chai.js
 
 # Gtk 3 .ui
 
@@ -115,7 +122,7 @@ uninstall: develop-uninstall
 
 DEVELOP_SYMLINK := $(HOME)/.local/share/gnome-shell/extensions/$(EXTENSION_UUID)
 
-test-deps: $(SCHEMAS_COMPILED) $(GENERATED_SOURCES)
+test-deps: $(SCHEMAS_COMPILED) $(GENERATED_SOURCES) $(TEST_GENERATED_SOURCES)
 
 all: test-deps
 .PHONY: test-deps

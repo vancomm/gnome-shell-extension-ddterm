@@ -24,11 +24,15 @@
 const { GLib, GObject, Gio, Meta } = imports.gi;
 const ByteArray = imports.byteArray;
 const Main = imports.ui.main;
-const JsUnit = imports.jsUnit;
 const Config = imports.misc.config;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Extension = Me.imports.extension;
 const { ConnectionSet } = Me.imports.connectionset;
+
+// eslint-disable-next-line chai-friendly/no-unused-expressions
+Me.imports.test.chai;
+// eslint-disable-next-line no-restricted-globals
+const { expect } = window.chai;
 
 const WindowMaximizeMode = {
     NOT_MAXIMIZED: 'not-maximized',
@@ -291,7 +295,7 @@ function wait_first_frame(timeout_ms = WAIT_TIMEOUT_MS) {
             }
         };
 
-        JsUnit.assertNull(Extension.window_manager.current_window);
+        expect(Extension.window_manager.current_window).to.be.null;
         connections.connect(Extension.window_manager, 'notify::current-window', check);
         connections.connect(global.display, 'window-created', (_, win) => {
             connections.connect(win.get_compositor_private(), 'first-frame', actor => {
@@ -351,14 +355,17 @@ async function set_settings_value(name, value) {
         return;
     }
 
-    info(`Changing setting ${name} from ${original.print(true)} to ${value.print(true)}`);
+    const value_str = value.print(true);
+    info(`Changing setting ${name} from ${original.print(true)} to ${value_str}`);
     settings.set_value(name, value);
     Gio.Settings.sync();
     await idle();
 
     const final = settings.get_value(name);
-    debug(`Result: ${name}=${final.print(true)}`);
-    JsUnit.assertTrue(value.equal(final));
+    const final_str = final.print(true);
+    debug(`Result: ${name}=${final_str}`);
+    expect(value.equal(final)).to.be.true;
+    expect(final_str).to.equal(value_str);
 }
 
 function set_settings_double(name, value) {
@@ -375,10 +382,10 @@ function set_settings_string(name, value) {
 
 function assert_rect_equals(expected_desc, expected, actual_desc, actual) {
     message(`Checking if ${actual_desc}={ .x=${actual.x}, .y=${actual.y}, .width=${actual.width}, .height=${actual.height} } matches ${expected_desc}={ .x=${expected.x}, .y=${expected.y}, .width=${expected.width}, .height=${expected.height} }`);
-    JsUnit.assertEquals('x', expected.x, actual.x);
-    JsUnit.assertEquals('y', expected.y, actual.y);
-    JsUnit.assertEquals('width', expected.width, actual.width);
-    JsUnit.assertEquals('height', expected.height, actual.height);
+    expect(actual).to.have.property('x', expected.x);
+    expect(actual).to.have.property('y', expected.y);
+    expect(actual).to.have.property('width', expected.width);
+    expect(actual).to.have.property('height', expected.height);
 }
 
 function compute_target_rect(window_size, window_pos, monitor_index) {
@@ -408,17 +415,17 @@ function verify_window_geometry(window_size, window_maximize, window_pos, monito
     const win = Extension.window_manager.current_window;
 
     const maximize_prop = ['top', 'bottom'].includes(window_pos) ? 'maximized-vertically' : 'maximized-horizontally';
-    JsUnit.assertEquals(window_maximize, win[maximize_prop]);
-    JsUnit.assertEquals(window_maximize, settings.get_boolean('window-maximize'));
+    expect(win[maximize_prop]).to.equal(window_maximize);
+    expect(settings.get_boolean('window-maximize')).to.equal(window_maximize);
 
     const workarea = Main.layoutManager.getWorkAreaForMonitor(monitor_index);
     const monitor_scale = global.display.get_monitor_scale(monitor_index);
     const target_rect_unmaximized = compute_target_rect(window_size, window_pos, monitor_index);
 
-    JsUnit.assertEquals(0, target_rect_unmaximized.width % monitor_scale);
-    JsUnit.assertEquals(0, target_rect_unmaximized.height % monitor_scale);
-    JsUnit.assertEquals(0, target_rect_unmaximized.x % monitor_scale);
-    JsUnit.assertEquals(0, target_rect_unmaximized.y % monitor_scale);
+    expect(target_rect_unmaximized.width % monitor_scale).to.equal(0);
+    expect(target_rect_unmaximized.height % monitor_scale).to.equal(0);
+    expect(target_rect_unmaximized.x % monitor_scale).to.equal(0);
+    expect(target_rect_unmaximized.y % monitor_scale).to.equal(0);
 
     assert_rect_equals(
         'target_rect_unmaximized',
@@ -624,7 +631,7 @@ async function test_show(window_size, window_maximize, window_pos, current_monit
     if (current_monitor !== global.display.get_current_monitor())
         Meta.MonitorManager.get().emit('monitors-changed-internal');
 
-    JsUnit.assertEquals(current_monitor, global.display.get_current_monitor());
+    expect(global.display.get_current_monitor()).to.equal(current_monitor);
 
     const prev_maximize = settings.get_boolean('window-maximize');
 
