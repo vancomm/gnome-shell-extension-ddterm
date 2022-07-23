@@ -120,14 +120,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - uses: actions/setup-node@v3
+
+    - run: git config --global --replace-all safe.directory "$GITHUB_WORKSPACE"
+
+    - uses: testspace-com/setup-testspace@v1
+      with:
+        domain: ${{ github.repository_owner }}
+
     - run: npm ci
+
     - run: xvfb-run make test-deps
+
     - run: tox -vv --notest --sitepackages
       working-directory: test
+
     - run: podman pull "${{ env.IMAGE }}"
+
     - run: tox --sitepackages -- --container-image "${{ env.IMAGE }}" -n 2 --screenshot-failing-only -v "test_extension.py::${{ matrix.session }}"
       working-directory: test
+
+    - run: testspace "[${{ matrix.image }}]./test/junit.xml"
+      if: always()
+
     - uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.session }}-${{ matrix.image }}
