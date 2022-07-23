@@ -1,5 +1,7 @@
 name: pack
 
+concurrency: ${{ github.workflow }}/${{ github.ref }}
+
 on:
   push:
     branches:
@@ -9,5 +11,18 @@ on:
   pull_request:
 
 jobs:
+  check_skip:
+    runs-on: ubuntu-latest
+
+    outputs:
+      should_skip: ${{ steps.check.outputs.should_skip }}
+
+    steps:
+      - id: check
+        uses: fkirc/skip-duplicate-actions@v4
+
   build:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.should_skip != 'true' }}
+
     uses: ./.github/workflows/pack-reusable.yml
