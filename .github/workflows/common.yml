@@ -142,14 +142,14 @@ jobs:
     - run: >-
         tox --sitepackages --
         --self-contained-html
-        --junitxml=junit.xml
+        --nunit-xml=nunit.xml
         --compose-service ${{ matrix.image }}
         --pack ../*.shell-extension.zip
         -n auto
         --screenshot-failing-only
         -vv
       working-directory: test
-    - run: testspace --verbose "[${{ matrix.image }}]./test/junit.xml" "[${{ matrix.image }}]+./test/report.html"
+    - run: testspace --verbose "[${{ matrix.image }}]./test/nunit.xml" "[${{ matrix.image }}]+./test/report.html"
       if: ${{ always() && steps.setup_testspace.outcome == 'success' }}
     - uses: actions/upload-artifact@v3
       with:

@@ -143,11 +143,13 @@ def resize_point(frame_rect, window_pos, monitor_scale):
 
 
 class ScreenshotContextManager(contextlib.AbstractContextManager):
-    def __init__(self, failing_only, screen_path, extra):
+    def __init__(self, failing_only, screen_path, extra, add_nunit_attachment, tmp_path):
         super().__init__()
         self.failing_only = failing_only
         self.screen_path = screen_path
         self.extra = extra
+        self.add_nunit_attachment = add_nunit_attachment
+        self.tmp_path = tmp_path / 'screenshot.png'
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is None and self.failing_only:
@@ -158,15 +160,20 @@ class ScreenshotContextManager(contextlib.AbstractContextManager):
         with wand.image.Image(blob=xwd_blob, format='xwd') as img:
             png_blob = img.make_blob('png')
 
+        self.tmp_path.write_bytes(png_blob)
+
         self.extra.append(extras.png(base64.b64encode(png_blob).decode('ascii')))
+        self.add_nunit_attachment(str(self.tmp_path), self.tmp_path.name)
 
 
 @pytest.fixture
-def screenshot(xvfb_fbdir, extra, pytestconfig):
+def screenshot(xvfb_fbdir, extra, pytestconfig, add_nunit_attachment, tmp_path):
     return ScreenshotContextManager(
         pytestconfig.getoption('--screenshot-failing-only'),
         xvfb_fbdir / 'Xvfb_screen0',
-        extra
+        extra,
+        add_nunit_attachment,
+        tmp_path
     )
 
 
