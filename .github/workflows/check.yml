@@ -136,7 +136,7 @@ jobs:
     - run: tox -vv --notest --sitepackages
       working-directory: test
 
-    - run: podman pull "${{ env.IMAGE }}"
+    - run: for retry in 1 2 3; do podman pull "${{ env.IMAGE }}" && break; done
 
     - run: tox --sitepackages -- --junitxml=junit.xml --container-image "${{ env.IMAGE }}" -n 2 --screenshot-failing-only -v "test_extension.py::${{ matrix.session }}"
       working-directory: test
