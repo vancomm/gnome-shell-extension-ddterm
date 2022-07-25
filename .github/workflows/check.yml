@@ -110,10 +110,10 @@ jobs:
 
     - run: for retry in 1 2 3; do podman pull "${{ env.IMAGE }}" && break; done
 
-    - run: tox --sitepackages -- --junitxml=junit.xml --container-image "${{ env.IMAGE }}" -n 2 --screenshot-failing-only -v "test_extension.py::${{ matrix.session }}"
+    - run: tox --sitepackages -- --self-contained-html --junitxml=junit.xml --container-image "${{ env.IMAGE }}" -n 2 --screenshot-failing-only -v "test_extension.py::${{ matrix.session }}"
       working-directory: test
 
-    - run: testspace "[${{ matrix.image }}]./test/junit.xml"
+    - run: testspace --verbose "[${{ matrix.image }}]./test/junit.xml" "[${{ matrix.image }}/test_extension.${{ matrix.session }}]+./test/report.html"
       if: always()
 
     - uses: actions/upload-artifact@v2
@@ -122,5 +122,4 @@ jobs:
         path: |
           test/report.html
           test/junit.xml
-          test/assets
       if: always()
