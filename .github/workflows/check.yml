@@ -57,6 +57,8 @@ jobs:
     - run: make msgcmp
 
   test:
+    concurrency: ${{ github.sha }}/${{ github.workflow }}/test/${{ matrix.image }}/${{ matrix.session }}
+
     needs:
     - lint
     - schemas
@@ -101,17 +103,30 @@ jobs:
       with:
         domain: ${{ github.repository_owner }}
 
+    - id: cached_result
+      uses: amezin/action-download-artifact@ea2ac00d352664b46e58f50b2fcdefffa4e94758
+      with:
+        commit: ${{ github.sha }}
+        name: ${{ matrix.session }}-${{ matrix.image }}
+        path: test
+        fail_if_not_found: false
+
     - run: npm ci
+      if: ${{ success() && steps.cached_result.outputs.found != 'true' }}
 
     - run: xvfb-run make test-deps
+      if: ${{ success() && steps.cached_result.outputs.found != 'true' }}
 
     - run: tox -vv --notest --sitepackages
       working-directory: test
+      if: ${{ success() && steps.cached_result.outputs.found != 'true' }}
 
     - run: for retry in 1 2 3; do podman pull "${{ env.IMAGE }}" && break; done
+      if: ${{ success() && steps.cached_result.outputs.found != 'true' }}
 
     - run: tox --sitepackages -- --self-contained-html --junitxml=junit.xml --container-image "${{ env.IMAGE }}" -n 2 --screenshot-failing-only -v "test_extension.py::${{ matrix.session }}"
       working-directory: test
+      if: ${{ success() && steps.cached_result.outputs.found != 'true' }}
 
     - run: testspace --verbose "[${{ matrix.image }}]./test/junit.xml" "[${{ matrix.image }}/test_extension.${{ matrix.session }}]+./test/report.html"
       if: always()
@@ -122,4 +137,4 @@ jobs:
         path: |
           test/report.html
           test/junit.xml
-      if: always()
+      if: ${{ steps.cached_result.outputs.found != 'true' }}
