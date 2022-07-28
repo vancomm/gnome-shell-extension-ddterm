@@ -145,7 +145,7 @@
     <value nick="end" value="3"/>
   </enum>
 
-  <schema path="/com/github/amezin/ddterm/" id="com.github.amezin.ddterm">
+  <schema path="/apps/github/amezin/ddterm/" id="com.github.amezin.ddterm">
     <key name="window-size" type="d">
       <default>0.6</default>
       <range min="0.0" max="1.0"/>
@@ -509,7 +509,7 @@
     </key>
     <key name="shortcut-switch-to-tab-9" type="as">
       <default><![CDATA[['<Alt>9']]]></default>
-    </key>
+
     <key name="shortcut-switch-to-tab-10" type="as">
       <default><![CDATA[['<Alt>0']]]></default>
     </key>
