@@ -25,6 +25,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - run: echo "::add-matcher::.github/problem-matchers/glib-compile-schemas.json"
     - run: make schemas
 
   locales:

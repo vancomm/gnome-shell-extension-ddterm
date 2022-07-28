@@ -1,0 +1,45 @@
+{
+    "problemMatcher": [
+        {
+            "owner": "glib-compile-schemas-file-line-col",
+            "pattern": [
+                {
+                    "regexp": "^(\\S+\\.gschema\\.xml):(\\d+):(\\d+)\\s+(.+)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4
+                }
+            ]
+        },
+        {
+            "owner": "glib-compile-schemas-file-line",
+            "pattern": [
+                {
+                    "regexp": "^(\\S+\\.gschema\\.xml):(\\d+)\\s+(.+)$",
+                    "file": 1,
+                    "message": 2
+                }
+            ]
+        },
+        {
+            "owner": "glib-compile-schemas-warning",
+            "pattern": [
+                {
+                    "regexp": "^(Warning):\\s+(.+)$",
+                    "severity": 1,
+                    "message": 2
+                }
+            ]
+        },
+        {
+            "owner": "glib-compile-schemas-strict",
+            "pattern": [
+                {
+                    "regexp": "^(.*--strict was specified; exiting.*)$",
+                    "message": 1
+                }
+            ]
+        }
+    ]
+}
