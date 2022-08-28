@@ -87,6 +87,9 @@ class CommonTests:
             except Exception:
                 LOGGER.exception("Can't sync journal")
 
+            finally:
+                cls.current_container.console.set_wait_line(None)
+
     @pytest.fixture(scope='class')
     def container(self, podman, container_image, xvfb_fbdir, global_tmp_path, request):
         assert request.cls is not CommonTests
