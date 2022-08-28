@@ -26,85 +26,48 @@ def podman_command(command=['podman']):
     )
 
 
-class ConsoleReader:
-    def __init__(self):
-        super().__init__()
-
-        self.wait_line_event = threading.Event()
-        self.wait_line_lock = threading.Lock()
-        self.wait_line_substr = None
-        self.shut_down = False
+class Console:
+    def __init__(self, container):
+        self.tee = None
+        self.process = None
+        self.container = container
 
     def write(self, chunk):
         sys.stdout.buffer.write(chunk)
 
-        with self.wait_line_lock:
-            if self.wait_line_substr is not None:
-                if self.wait_line_substr in chunk:
-                    self.wait_line_event.set()
+        tee = self.tee
+        if tee is not None:
+            tee(chunk)
 
-    def done(self, *_):
-        with self.wait_line_lock:
-            self.shut_down = True
-            self.wait_line_event.set()
+    def attach(self):
+        assert self.process is None
 
-    def set_wait_line(self, substr):
-        with self.wait_line_lock:
-            if self.shut_down:
-                return
-
-            self.wait_line_substr = substr
-            self.wait_line_event.clear()
-
-    def wait_line(self, timeout=None):
-        if not self.wait_line_event.wait(timeout=timeout):
-            raise TimeoutError()
-
-
-class ConsoleReaderSubprocess(ConsoleReader):
-    def __init__(self, container):
-        super().__init__()
-
-        self.process = container.podman.attach(
-            '--no-stdin', container.container_id,
-            _out=self, _done=self.done, _bg=True, _timeout=None
+        self.process = self.container.podman.attach(
+            '--no-stdin', self.container.container_id,
+            _out=self, _bg=True, _timeout=None
         )
 
-    def join(self, timeout=None):
-        LOGGER.info('Waiting for console reader subprocess to stop')
-
-        with contextlib.suppress(sh.SignalException_SIGKILL):
+    def wait(self, timeout=None):
+        if self.process is not None:
             self.process.wait(timeout=timeout)
-
-        LOGGER.info('Console reader shut down')
 
 
 class Container:
-    def __init__(self, podman, container_id):
-        self.container_id = container_id
+    def __init__(self, podman, *args):
+        self.container_id = str(podman.create(*args, _out=None)).strip()
         self.podman = podman
-        self.console = None
+        self.console = Console(self)
 
-    def kill(self):
+    def rm(self):
         try:
-            self.podman.kill(self.container_id)
-
-        except sh.ErrorReturnCode:
-            LOGGER.exception('Failed to kill container %r', self.container_id)
+            self.podman.rm('-f', self.container_id)
 
         finally:
-            if self.console:
-                self.console.join()
+            self.console.wait(timeout=1)
 
-    def start_console(self):
-        assert self.console is None
-        self.console = ConsoleReaderSubprocess(self)
-
-    @classmethod
-    def run(cls, podman, *args):
-        container_id = str(podman.run('-td', *args, _out=None)).strip()
-
-        return cls(podman, container_id)
+    def start(self):
+        self.podman.start(self.container_id)
+        self.console.attach()
 
     def exec(self, *args, user=None, env=dict(), **kwargs):
         user_args = [] if user is None else ['--user', user]

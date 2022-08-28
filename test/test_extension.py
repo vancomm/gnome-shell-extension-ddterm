@@ -5,6 +5,7 @@ import contextlib
 import functools
 import logging
 import pathlib
+import queue
 import subprocess
 import time
 
@@ -77,51 +78,65 @@ class CommonTests:
             if cls.current_container is None:
                 return
 
-            try:
-                msg = f'End of {item.nodeid} {when}'
+            msg = f'End of {item.nodeid} {when}'
+            encoded = msg.encode()
 
-                cls.current_container.console.set_wait_line(msg.encode())
+            grep_result = queue.Queue(maxsize=1)
+
+            def grep(chunk):
+                if encoded in chunk:
+                    grep_result.put(chunk)
+
+            cls.current_container.console.tee = grep
+
+            try:
                 cls.journal_message(msg)
-                cls.current_container.console.wait_line(timeout=1)
+                grep_result.get(timeout=1)
 
             except Exception:
                 LOGGER.exception("Can't sync journal")
 
             finally:
-                cls.current_container.console.set_wait_line(None)
+                cls.current_container.console.tee = None
 
     @pytest.fixture(scope='class')
     def container(self, podman, container_image, xvfb_fbdir, global_tmp_path, request):
-        assert request.cls is not CommonTests
-        assert request.cls.current_container is None
+        cls = request.cls
+
+        assert cls is not CommonTests
+        assert cls.current_container is None
 
         with filelock.FileLock(global_tmp_path / 'container-starting.lock') as lock:
-            c = container_util.Container.run(
+            c = container_util.Container(
                 podman,
-                '--rm', '-P', '--log-driver=none',
+                '-t', '-P', '--log-driver=none',
                 '--cap-add=SYS_NICE,SYS_PTRACE,SETPCAP,NET_RAW,NET_BIND_SERVICE,DAC_READ_SEARCH',
                 '-v', f'{SRC_DIR}:{PKG_PATH}:ro',
                 '-v', f'{TEST_SRC_DIR}/fbdir.conf:/etc/systemd/system/xvfb@.service.d/fbdir.conf:ro',
                 '-v', f'{xvfb_fbdir}:/xvfb',
                 container_image,
             )
-            atexit.register(c.kill)
+            atexit.register(c.rm)
 
             try:
-                c.start_console()
-                request.cls.current_container = c
+                c.start()
+                cls.current_container = c
 
-                c.exec('busctl', '--system', '--watch-bind=true', 'status')
-                c.exec('systemctl', 'is-system-running', '--wait')
+                try:
+                    c.exec('busctl', '--system', '--watch-bind=true', 'status')
+                    c.exec('systemctl', 'is-system-running', '--wait')
 
-                lock.release()
+                    lock.release()
 
-                yield c
+                    yield c
+
+                finally:
+                    assert cls.current_container is c
+                    cls.current_container = None
 
             finally:
-                request.cls.current_container = None
-                c.kill()
-                atexit.unregister(c.kill)
+                atexit.unregister(c.rm)
+                c.rm()
 
     @pytest.fixture(scope='class')
     def user_env(self, container):
