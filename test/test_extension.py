@@ -3,7 +3,6 @@ import base64
 import collections
 import contextlib
 import functools
-import itertools
 import logging
 import pathlib
 import subprocess
@@ -60,16 +59,16 @@ class CommonTests:
     def journal_message(cls, msg):
         if cls.current_dbus_interface:
             cls.current_dbus_interface.LogMessage('(s)', msg)
-
-        elif cls.current_container is not None:
-            cls.current_container.exec('systemd-cat', input=msg.encode())
+        else:
+            cls.current_container.exec('systemd-cat', _in=msg)
 
     @classmethod
     @contextlib.contextmanager
     def journal_context(cls, item, when):
         assert cls is not CommonTests
 
-        cls.journal_message(f'Beginning of {item.nodeid} {when}')
+        if cls.current_container is not None:
+            cls.journal_message(f'Beginning of {item.nodeid} {when}')
 
         try:
             yield
@@ -112,7 +111,7 @@ class CommonTests:
                 c.start_console()
                 request.cls.current_container = c
 
-                c.exec('busctl', '--system', '--watch-bind=true', 'status', stdout=subprocess.DEVNULL)
+                c.exec('busctl', '--system', '--watch-bind=true', 'status')
                 c.exec('systemctl', 'is-system-running', '--wait')
 
                 lock.release()
@@ -126,9 +125,10 @@ class CommonTests:
 
     @pytest.fixture(scope='class')
     def user_env(self, container):
-        bus_address = container.exec(
-            'su', '-c', 'echo $DBUS_SESSION_BUS_ADDRESS', '-', USER_NAME, stdout=subprocess.PIPE
-        ).stdout.rstrip(b'\n').decode()
+        bus_address = str(container.exec(
+            'su', '-c', 'echo $DBUS_SESSION_BUS_ADDRESS', '-', USER_NAME,
+            _out=None
+        )).strip()
         return dict(user=USER_NAME, env=dict(DBUS_SESSION_BUS_ADDRESS=bus_address))
 
     @pytest.fixture(scope='class')
@@ -138,11 +138,10 @@ class CommonTests:
 
     @pytest.fixture(scope='class')
     def bus_connection(self, container, user_env):
-        while container.exec(
+        container.exec(
             'busctl', '--user', '--watch-bind=true', 'status',
-            stdout=subprocess.DEVNULL, check=False, **user_env
-        ).returncode != 0:
-            time.sleep(0.1)
+            **user_env
+        )
 
         hostport = container.inspect('{{json .NetworkSettings.Ports}}')['1234/tcp'][0];
         host = hostport['HostIp'] or '127.0.0.1'

@@ -1,71 +1,48 @@
+import contextlib
 import json
 import logging
-import shlex
 import subprocess
 import sys
 import threading
 import time
 
+import sh
+
 
 LOGGER = logging.getLogger(__name__)
 
 
-class Podman:
-    def __init__(self, base_args=('podman',)):
-        self.base_args = tuple(base_args)
-
-    def cmd(self, *args):
-        return self.base_args + args
-
-    def __call__(self, *args, **kwargs):
-        kwargs.setdefault('check', True)
-        kwargs.setdefault('timeout', 30)
-
-        cmd = self.cmd(*args)
-        cmd_str = shlex.join(cmd)
-
-        LOGGER.info('Running: %s', cmd_str)
-        try:
-            proc = subprocess.run(cmd, **kwargs)
-        finally:
-            LOGGER.info('Done: %s', cmd_str)
-
-        return proc
-
-    def bg(self, *args, **kwargs):
-        cmd = self.cmd(*args)
-        LOGGER.info('Starting in background: %s', shlex.join(cmd))
-        return subprocess.Popen(cmd, **kwargs)
+def podman_command(command=['podman']):
+    return sh.Command(command[0]).bake(
+        *command[1:],
+        _timeout=30,
+        _out=sys.stdout,
+        _err=sys.stderr,
+        _tee='err'
+    )
 
 
-class StreamReaderThread(threading.Thread):
-    def __init__(self, stream):
+class ConsoleReader:
+    def __init__(self):
         super().__init__()
-        self.stream = stream
 
         self.wait_line_event = threading.Event()
         self.wait_line_lock = threading.Lock()
         self.wait_line_substr = None
         self.shut_down = False
 
-    def process_line(self, line):
-        sys.stderr.buffer.write(line)
+    def write(self, chunk):
+        sys.stdout.buffer.write(chunk)
 
         with self.wait_line_lock:
             if self.wait_line_substr is not None:
-                if self.wait_line_substr in line:
+                if self.wait_line_substr in chunk:
                     self.wait_line_event.set()
 
-    def run(self):
-        try:
-            with self.stream:
-                while line := self.stream.readline():
-                    self.process_line(line)
-
-        finally:
-            with self.wait_line_lock:
-                self.shut_down = True
-                self.wait_line_event.set()
+    def done(self, *_):
+        with self.wait_line_lock:
+            self.shut_down = True
+            self.wait_line_event.set()
 
     def set_wait_line(self, substr):
         with self.wait_line_lock:
@@ -80,27 +57,22 @@ class StreamReaderThread(threading.Thread):
             raise TimeoutError()
 
 
-class ConsoleReaderSubprocess(StreamReaderThread):
-    def __init__(self, process):
-        super().__init__(process.stdout)
-        self.process = process
+class ConsoleReaderSubprocess(ConsoleReader):
+    def __init__(self, container):
+        super().__init__()
+
+        self.process = container.podman.attach(
+            '--no-stdin', container.container_id,
+            _out=self, _done=self.done, _bg=True, _timeout=None
+        )
 
     def join(self, timeout=None):
         LOGGER.info('Waiting for console reader subprocess to stop')
-        self.process.wait(timeout=timeout)
-        LOGGER.info('Waiting for console reader thread to stop')
-        super().join(timeout=timeout)
-        LOGGER.info('Console reader shut down')
 
-    @classmethod
-    def spawn(cls, container):
-        process = container.podman.bg(
-            'attach', '--no-stdin', container.container_id,
-            stderr=subprocess.STDOUT, stdout=subprocess.PIPE, bufsize=0
-        )
-        reader = cls(process)
-        reader.start()
-        return reader
+        with contextlib.suppress(sh.SignalException_SIGKILL):
+            self.process.wait(timeout=timeout)
+
+        LOGGER.info('Console reader shut down')
 
 
 class Container:
@@ -110,40 +82,37 @@ class Container:
         self.console = None
 
     def kill(self):
-        self.podman('kill', self.container_id, check=False)
+        try:
+            self.podman.kill(self.container_id)
 
-        if self.console:
-            self.console.join()
+        except sh.ErrorReturnCode:
+            LOGGER.exception('Failed to kill container %r', self.container_id)
+
+        finally:
+            if self.console:
+                self.console.join()
 
     def start_console(self):
         assert self.console is None
-        self.console = ConsoleReaderSubprocess.spawn(self)
+        self.console = ConsoleReaderSubprocess(self)
 
     @classmethod
     def run(cls, podman, *args):
-        container_id = podman(
-            'run', '-td', *args, stdout=subprocess.PIPE, text=True
-        ).stdout
-
-        if container_id.endswith('\n'):
-            container_id = container_id[:-1]
+        container_id = str(podman.run('-td', *args, _out=None)).strip()
 
         return cls(podman, container_id)
 
-    def exec(self, *args, user=None, bg=False, env=None, **kwargs):
+    def exec(self, *args, user=None, env=dict(), **kwargs):
         user_args = [] if user is None else ['--user', user]
+        user_args.extend(f'--env={k}={v}' for k, v in env.items())
 
-        if env:
-            user_args.extend(f'--env={k}={v}' for k, v in env.items())
-
-        return (self.podman.bg if bg else self.podman)(
-            'exec', *user_args, self.container_id, *args, **kwargs
+        return self.podman.exec(
+            *user_args, self.container_id, *args, **kwargs
         )
 
     def inspect(self, format=None):
         format_args = () if format is None else ('--format', format)
 
-        return json.loads(self.podman(
-            'container', 'inspect', *format_args, self.container_id,
-            stdout=subprocess.PIPE
+        return json.loads(self.podman.container.inspect(
+            *format_args, self.container_id, _out=None
         ).stdout)

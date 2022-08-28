@@ -1,9 +1,4 @@
-import collections
 import contextlib
-import logging
-import pathlib
-import shlex
-import subprocess
 import urllib.parse
 
 import filelock
@@ -11,8 +6,6 @@ import pytest
 
 from . import container_util
 
-
-LOGGER = logging.getLogger(__name__)
 
 IMAGES_BASEURL = 'ghcr.io/ddterm/gnome-shell-pod'
 IMAGES_BRANCH = 'master'
@@ -32,7 +25,7 @@ def global_tmp_path(tmp_path_factory):
 
 @pytest.fixture(scope='session')
 def podman(pytestconfig):
-    return container_util.Podman(pytestconfig.option.podman)
+    return container_util.podman_command(pytestconfig.option.podman)
 
 
 @pytest.fixture(scope='session')
@@ -46,7 +39,7 @@ def container_image(request, pytestconfig, podman, global_tmp_path):
         done_path = global_tmp_path / f'{basename}.done'
 
         if not done_path.exists():
-            podman('pull', request.param, timeout=None)
+            podman.pull(request.param, _timeout=None)
             done_path.touch()
 
     return request.param
