@@ -37,6 +37,25 @@ def mkpairs(*args, **kwargs):
     return list(allpairspy.AllPairs(*args, **kwargs))
 
 
+class ScreenshotContextManager(contextlib.AbstractContextManager):
+    def __init__(self, failing_only, screen_path, extra):
+        super().__init__()
+        self.failing_only = failing_only
+        self.screen_path = screen_path
+        self.extra = extra
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None and self.failing_only:
+            return
+
+        xwd_blob = pathlib.Path(self.screen_path).read_bytes()
+
+        with wand.image.Image(blob=xwd_blob, format='xwd') as img:
+            png_blob = img.make_blob('png')
+
+        self.extra.append(extras.png(base64.b64encode(png_blob).decode('ascii')))
+
+
 @pytest.mark.runtest_cm.with_args(lambda item, when: item.cls.journal_context(item, when))
 class CommonTests:
     GNOME_SHELL_SESSION_NAME: str
@@ -149,19 +168,11 @@ class CommonTests:
 
     @pytest.fixture
     def screenshot(self, xvfb_fbdir, extra, pytestconfig):
-        class ScreenshotContextManager(contextlib.AbstractContextManager):
-            def __exit__(self, exc_type, exc_value, traceback):
-                if exc_type is None and pytestconfig.getoption('--screenshot-failing-only'):
-                    return
-
-                xwd_blob = pathlib.Path(xvfb_fbdir / 'Xvfb_screen0').read_bytes()
-
-                with wand.image.Image(blob=xwd_blob, format='xwd') as img:
-                    png_blob = img.make_blob('png')
-
-                extra.append(extras.png(base64.b64encode(png_blob).decode('ascii')))
-
-        return ScreenshotContextManager
+        return ScreenshotContextManager(
+            pytestconfig.getoption('--screenshot-failing-only'),
+            xvfb_fbdir / 'Xvfb_screen0',
+            extra
+        )
 
     @pytest.fixture(scope='class')
     def extension_test_interface(self, user_bus, shell_extensions_interface, request):
@@ -212,7 +223,7 @@ class CommonTests:
         mkpairs([MORE_SIZE_VALUES, MAXIMIZE_MODES, VERTICAL_RESIZE_POSITIONS])
     )
     def test_show_v(self, extension_test_interface, window_size, window_maximize, window_pos, monitor_config, screenshot):
-        with screenshot():
+        with screenshot:
             extension_test_interface.TestShow('(dssis)', window_size, window_maximize, window_pos, monitor_config.current_index, monitor_config.setting)
 
     def test_show_h(self, extension_test_interface, window_size, window_maximize, window_pos, monitor_config, monitors_geometry, monitors_scale, screenshot):
@@ -221,7 +232,7 @@ class CommonTests:
         else:
             target_monitor = monitor_config.current_index
 
-        with screenshot():
+        with screenshot:
             extension_test_interface.TestShow('(dssis)', window_size, window_maximize, window_pos, monitor_config.current_index, monitor_config.setting)
 
     @pytest.mark.parametrize(
@@ -235,7 +246,7 @@ class CommonTests:
             if monitor_config.current_index == 1 and window_pos == 'bottom' and window_size2 == 1:
                 pytest.xfail('For unknown reason it fails to resize to full height on 2nd monitor')
 
-        with screenshot():
+        with screenshot:
             extension_test_interface.TestResizeXte('(dsdsis)', window_size, window_maximize, window_size2, window_pos, monitor_config.current_index, monitor_config.setting)
 
     @pytest.mark.parametrize(
@@ -243,7 +254,7 @@ class CommonTests:
         mkpairs([POSITIONS, POSITIONS, SIZE_VALUES], filter_func=lambda p: (len(p) < 2) or (p[0] != p[1]))
     )
     def test_change_position(self, extension_test_interface, window_size, window_pos, window_pos2, monitor_config, screenshot):
-        with screenshot():
+        with screenshot:
             extension_test_interface.TestChangePosition('(dssis)', window_size, window_pos, window_pos2, monitor_config.current_index, monitor_config.setting)
 
     @pytest.mark.parametrize(
@@ -251,7 +262,7 @@ class CommonTests:
         mkpairs([SIZE_VALUES, MAXIMIZE_MODES, POSITIONS])
     )
     def test_unmaximize(self, extension_test_interface, window_size, window_maximize, window_pos, monitor_config, screenshot):
-        with screenshot():
+        with screenshot:
             extension_test_interface.TestUnmaximize('(dssis)', window_size, window_maximize, window_pos, monitor_config.current_index, monitor_config.setting)
 
     @pytest.mark.parametrize(
@@ -259,7 +270,7 @@ class CommonTests:
         mkpairs([SIZE_VALUES, SIZE_VALUES, POSITIONS])
     )
     def test_unmaximize_correct_size(self, extension_test_interface, window_size, window_size2, window_pos, monitor_config, screenshot):
-        with screenshot():
+        with screenshot:
             extension_test_interface.TestUnmaximizeCorrectSize('(ddsis)', window_size, window_size2, window_pos, monitor_config.current_index, monitor_config.setting)
 
     @pytest.mark.parametrize(
@@ -267,7 +278,7 @@ class CommonTests:
         mkpairs([SIZE_VALUES, SIZE_VALUES, POSITIONS], filter_func=lambda p: (len(p) < 2) or (p[0] != p[1]))
     )
     def test_unmaximize_on_size_change(self, extension_test_interface, window_size, window_size2, window_pos, monitor_config, screenshot):
-        with screenshot():
+        with screenshot:
             extension_test_interface.TestUnmaximizeOnSizeChange('(ddsis)', window_size, window_size2, window_pos, monitor_config.current_index, monitor_config.setting)
 
 
