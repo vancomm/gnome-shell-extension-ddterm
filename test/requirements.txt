@@ -9,3 +9,6 @@ filelock~=3.8.0
 allpairspy~=2.5.0
 setproctitle~=1.3.2
 sh~=1.14.3
+PyYAML~=6.0
+python-dotenv~=0.20.0
+podman-compose @ git+https://github.com/amezin/podman-compose.git@72d797c0d7fe39e350157ccde7a871aa428b841e

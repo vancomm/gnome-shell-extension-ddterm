@@ -1,0 +1,46 @@
+name: ddterm-test-${PYTEST_XDIST_WORKER:-master}
+
+x-service-template: &x-service-template
+  tty: true
+
+  logging:
+    driver: none
+
+  cap_add:
+    - SYS_NICE
+    - SYS_PTRACE
+    - SETPCAP
+    - NET_RAW
+    - NET_BIND_SERVICE
+    - DAC_READ_SEARCH
+
+  volumes:
+    - ..:/home/gnomeshell/.local/share/gnome-shell/extensions/ddterm@amezin.github.com:ro
+    - ./fbdir.conf:/etc/systemd/system/xvfb@.service.d/fbdir.conf:ro
+    - ${DDTERM_TEST_XVFB_FBDIR:-/tmp/ddterm-test-xvfb}:/xvfb
+
+  ports:
+    - target: 1234
+      host_ip: "127.0.0.1"
+      protocol: tcp
+
+services:
+  fedora-35:
+    <<: *x-service-template
+    image: ghcr.io/ddterm/gnome-shell-pod/fedora-35:master
+
+  fedora-36:
+    <<: *x-service-template
+    image: ghcr.io/ddterm/gnome-shell-pod/fedora-36:master
+
+  debian-11:
+    <<: *x-service-template
+    image: ghcr.io/ddterm/gnome-shell-pod/debian-11:master
+
+  ubuntu-20.04:
+    <<: *x-service-template
+    image: ghcr.io/ddterm/gnome-shell-pod/ubuntu-20.04:master
+
+  ubuntu-22.04:
+    <<: *x-service-template
+    image: ghcr.io/ddterm/gnome-shell-pod/ubuntu-22.04:master

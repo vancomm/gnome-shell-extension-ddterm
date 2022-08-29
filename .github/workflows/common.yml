@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image:
+        container_name:
           - 'fedora-35'
           - 'fedora-36'
           - 'debian-11'
@@ -77,37 +77,62 @@ jobs:
           - 'ubuntu-22.04'
 
     env:
-      IMAGE: ghcr.io/ddterm/gnome-shell-pod/${{ matrix.image }}:master
       PY_COLORS: 1
-      TOX_TESTENV_PASSENV: PY_COLORS GITHUB_ACTIONS PIP_DISABLE_PIP_VERSION_CHECK
       TOXENV: py3-ghactions
       PIP_DISABLE_PIP_VERSION_CHECK: 1
+      TOX_TESTENV_PASSENV: >-
+        PY_COLORS
+        GITHUB_ACTIONS
+        PIP_DISABLE_PIP_VERSION_CHECK
 
     steps:
     - uses: actions/checkout@v3
+
     - uses: actions/setup-node@v3
+
     - run: echo "::add-matcher::.github/problem-matchers/generic.json"
+
     - run: git config --global --replace-all safe.directory "$GITHUB_WORKSPACE"
+
     - id: setup_testspace
       uses: testspace-com/setup-testspace@v1
       with:
         domain: ${{ github.repository_owner }}
       continue-on-error: true
+
     - run: npm ci
+
     - run: xvfb-run make test-deps
+
     - run: tox -vv --notest --sitepackages
       working-directory: test
-    - run: for retry in 1 2 3; do podman pull "${{ env.IMAGE }}" && break; done
+
+    - run: >-
+        for retry in 1 2 3; do
+          .tox/$TOXENV/bin/podman-compose pull ${{ matrix.container_name }} && break;
+        done
+      working-directory: test
+
     - run: |
         echo "::remove-matcher owner=generic::"
         echo "::remove-matcher owner=generic-nolocation::"
-    - run: tox --sitepackages -- --self-contained-html --junitxml=junit.xml --container-image "${{ env.IMAGE }}" -n 2 --screenshot-failing-only -v
+
+    - run: >-
+        tox --sitepackages --
+        -n 2
+        --junitxml=junit.xml
+        --self-contained-html
+        --container "${{ matrix.container_name }}"
+        --screenshot-failing-only
+        -v
       working-directory: test
-    - run: testspace --verbose "[${{ matrix.image }}]./test/junit.xml" "[${{ matrix.image }}]+./test/report.html"
+
+    - run: testspace --verbose "[${{ matrix.container_name }}]./test/junit.xml" "[${{ matrix.container_name }}]+./test/report.html"
       if: ${{ always() && steps.setup_testspace.outcome == 'success' }}
+
     - uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.image }}
+        name: ${{ matrix.container_name }}
         path: |
           test/report.html
           test/junit.xml

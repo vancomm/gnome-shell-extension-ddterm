@@ -1,16 +1,13 @@
-import atexit
 import base64
 import collections
 import contextlib
 import functools
 import logging
+import os
 import pathlib
 import queue
-import subprocess
-import time
 
 import allpairspy
-import filelock
 import pytest
 import wand.image
 from pytest_html import extras
@@ -23,11 +20,8 @@ LOGGER = logging.getLogger(__name__)
 Rect = collections.namedtuple('Rect', ('x', 'y', 'width', 'height'))
 MonitorConfig = collections.namedtuple('MonitorConfig', ['current_index', 'setting'])
 
-TEST_SRC_DIR = pathlib.Path(__file__).parent.resolve()
-SRC_DIR = TEST_SRC_DIR.parent
 EXTENSION_UUID = 'ddterm@amezin.github.com'
 USER_NAME = 'gnomeshell'
-PKG_PATH = f'/home/{USER_NAME}/.local/share/gnome-shell/extensions/{EXTENSION_UUID}'
 
 MAXIMIZE_MODES = ['not-maximized', 'maximize-early', 'maximize-late']
 HORIZONTAL_RESIZE_POSITIONS = ['left', 'right']
@@ -43,8 +37,8 @@ def mkpairs(*args, **kwargs):
 
 
 @pytest.fixture(scope='session')
-def xvfb_fbdir(tmpdir_factory):
-    return tmpdir_factory.mktemp('xvfb')
+def xvfb_fbdir(tmp_path_factory):
+    return tmp_path_factory.mktemp('xvfb')
 
 
 @pytest.mark.runtest_cm.with_args(lambda item, when: item.cls.journal_context(item, when))
@@ -108,43 +102,33 @@ class CommonTests:
                     LOGGER.exception("Can't sync journal")
 
     @pytest.fixture(scope='class')
-    def container(self, podman, container_image, xvfb_fbdir, global_tmp_path, request):
+    def container(self, compose_service_name, xvfb_fbdir, request):
         cls = request.cls
 
         assert cls is not CommonTests
         assert cls.current_container is None
 
-        with filelock.FileLock(global_tmp_path / 'container-starting.lock') as lock:
-            c = container_util.Container(
-                podman,
-                '-t', '-P', '--log-driver=none',
-                '--cap-add=SYS_NICE,SYS_PTRACE,SETPCAP,NET_RAW,NET_BIND_SERVICE,DAC_READ_SEARCH',
-                '-v', f'{SRC_DIR}:{PKG_PATH}:ro',
-                '-v', f'{TEST_SRC_DIR}/fbdir.conf:/etc/systemd/system/xvfb@.service.d/fbdir.conf:ro',
-                '-v', f'{xvfb_fbdir}:/xvfb',
-                container_image,
-            )
-            atexit.register(c.rm)
+        os.environ['DDTERM_TEST_XVFB_FBDIR'] = str(xvfb_fbdir)
 
-            try:
-                c.start()
-                cls.current_container = c
+        project = container_util.ComposeProject()
+        container = project.create(compose_service_name)
 
-                try:
-                    c.exec('busctl', '--system', '--watch-bind=true', 'status')
-                    c.exec('systemctl', 'is-system-running', '--wait')
+        cls.current_container = container
 
-                    lock.release()
+        try:
+            container.start()
 
-                    yield c
+            container.exec('busctl', '--system', '--watch-bind=true', 'status')
+            container.exec('systemctl', 'is-system-running', '--wait')
 
-                finally:
-                    assert cls.current_container is c
-                    cls.current_container = None
+            yield container
 
-            finally:
-                atexit.unregister(c.rm)
-                c.rm()
+        finally:
+            assert cls.current_container is container
+            cls.current_container = None
+
+            project.down()
+            container.console.wait(timeout=1)
 
     @pytest.fixture(scope='class')
     def user_env(self, container):

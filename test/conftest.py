@@ -1,70 +1,48 @@
 import contextlib
-import urllib.parse
 
-import filelock
 import pytest
 
 from . import container_util
 
 
-IMAGES_BASEURL = 'ghcr.io/ddterm/gnome-shell-pod'
-IMAGES_BRANCH = 'master'
-IMAGES = [
-    f'{IMAGES_BASEURL}/fedora-35:{IMAGES_BRANCH}',
-    f'{IMAGES_BASEURL}/fedora-36:{IMAGES_BRANCH}',
-    f'{IMAGES_BASEURL}/debian-11:{IMAGES_BRANCH}',
-    f'{IMAGES_BASEURL}/ubuntu-20.04:{IMAGES_BRANCH}',
-    f'{IMAGES_BASEURL}/ubuntu-22.04:{IMAGES_BRANCH}',
-]
-
-
 @pytest.fixture(scope='session')
-def global_tmp_path(tmp_path_factory):
-    return tmp_path_factory.getbasetemp().parent
-
-
-@pytest.fixture(scope='session')
-def podman(pytestconfig):
-    return container_util.podman_command(pytestconfig.option.podman)
-
-
-@pytest.fixture(scope='session')
-def container_image(request, pytestconfig, podman, global_tmp_path):
-    if not pytestconfig.option.pull:
-        return request.param
-
-    basename = urllib.parse.quote_plus(request.param)
-
-    with filelock.FileLock(global_tmp_path / f'{basename}.lock'):
-        done_path = global_tmp_path / f'{basename}.done'
-
-        if not done_path.exists():
-            podman.pull(request.param, _timeout=None)
-            done_path.touch()
-
+def compose_service_name(request):
     return request.param
 
 
-def pytest_addoption(parser):
-    parser.addoption('--container-image', action='append')
-    parser.addoption('--podman', default=['podman'], nargs='+')
-    parser.addoption('--pull', default=False, action='store_true')
-    parser.addoption('--screenshot-failing-only', default=False, action='store_true')
+def pytest_generate_tests(metafunc):
+    if 'compose_service_name' in metafunc.fixturenames:
+        metafunc.parametrize(
+            'compose_service_name',
+            (
+                pytest.param(name, marks=pytest.mark.uses_compose_service.with_args(name))
+                for name in metafunc.config.option.container
+            ),
+            indirect=True,
+            scope='session'
+        )
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(session, config, items):
+    def key(item):
+        service_marker = item.get_closest_marker('uses_compose_service')
+        return service_marker.args[0] if service_marker else None
+
+    items.sort(key=key)
 
 
 def pytest_configure(config):
-    config.addinivalue_line(
-        'markers', 'runtest_cm(func): wrap runtest hooks with context manager'
-    )
+    compose_services = config.getoption('--container')
+
+    if not compose_services:
+        project = container_util.ComposeProject()
+        config.option.container = project.list_services()
 
 
-def pytest_generate_tests(metafunc):
-    if 'container_image' in metafunc.fixturenames:
-        images = metafunc.config.getoption('--container-image')
-        if not images:
-            images = IMAGES
-
-        metafunc.parametrize('container_image', images, indirect=True, scope='session')
+def pytest_addoption(parser):
+    parser.addoption('--container', action='append')
+    parser.addoption('--screenshot-failing-only', default=False, action='store_true')
 
 
 def get_runtest_cm(item, when):
