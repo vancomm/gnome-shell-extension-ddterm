@@ -1,7 +1,7 @@
 import contextlib
 import json
 import logging
-import subprocess
+import os
 import sys
 import threading
 import time
@@ -11,13 +11,17 @@ import sh
 
 LOGGER = logging.getLogger(__name__)
 
+# FDs that are never closed - to make commands work during teardown
+STDOUT = os.dup(sys.stdout.fileno())
+STDERR = os.dup(sys.stderr.fileno())
+
 
 def podman_command(command=['podman']):
     return sh.Command(command[0]).bake(
         *command[1:],
         _timeout=30,
-        _out=sys.stdout,
-        _err=sys.stderr,
+        _out=STDOUT,
+        _err=STDERR,
         _tee='err'
     )
 
