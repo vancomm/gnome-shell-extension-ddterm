@@ -192,6 +192,10 @@ async function setup() {
         message('Overview hidden');
     }
 
+    const wait = wait_first_frame(START_TIMEOUT_MS);
+    Extension.toggle();
+    await wait;
+
     message('Setup complete');
 }
 
@@ -633,7 +637,7 @@ async function test_show(window_size, window_maximize, window_pos, current_monit
     await set_settings_string('window-position', window_pos);
     await set_settings_string('window-monitor', window_monitor);
 
-    const wait = wait_first_frame(Extension.subprocess ? WAIT_TIMEOUT_MS : START_TIMEOUT_MS);
+    const wait = wait_first_frame(WAIT_TIMEOUT_MS);
 
     Extension.toggle();
 
