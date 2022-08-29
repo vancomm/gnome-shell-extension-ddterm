@@ -3,11 +3,12 @@ import collections
 import contextlib
 import functools
 import logging
-import os
 import pathlib
 import queue
+import sys
 
 import allpairspy
+import filelock
 import pytest
 import wand.image
 from pytest_html import extras
@@ -34,11 +35,6 @@ MORE_SIZE_VALUES = [0.31, 0.36, 0.4] + SMALL_SCREEN_SIZE_VALUES
 
 def mkpairs(*args, **kwargs):
     return list(allpairspy.AllPairs(*args, **kwargs))
-
-
-@pytest.fixture(scope='session')
-def xvfb_fbdir(tmp_path_factory):
-    return tmp_path_factory.mktemp('xvfb')
 
 
 @pytest.mark.runtest_cm.with_args(lambda item, when: item.cls.journal_context(item, when))
@@ -102,55 +98,50 @@ class CommonTests:
                     LOGGER.exception("Can't sync journal")
 
     @pytest.fixture(scope='class')
-    def container(self, compose_service_name, xvfb_fbdir, request):
+    def running_container(self, compose_container, global_tmp_path, request):
         cls = request.cls
 
         assert cls is not CommonTests
         assert cls.current_container is None
 
-        os.environ['DDTERM_TEST_XVFB_FBDIR'] = str(xvfb_fbdir)
+        with filelock.FileLock(global_tmp_path / 'container.lock') as lock:
+            compose_container.start()
 
-        project = container_util.ComposeProject()
-        container = project.create(compose_service_name)
+        cls.current_container = compose_container
 
-        cls.current_container = container
+        yield compose_container
 
-        try:
-            container.start()
+        assert cls.current_container is compose_container
+        cls.current_container = None
 
-            container.exec('busctl', '--system', '--watch-bind=true', 'status')
-            container.exec('systemctl', 'is-system-running', '--wait')
-
-            yield container
-
-        finally:
-            assert cls.current_container is container
-            cls.current_container = None
-
-            project.down()
-            container.console.wait(timeout=1)
+        with filelock.FileLock(global_tmp_path / 'container.lock') as lock:
+            compose_container.stop()
 
     @pytest.fixture(scope='class')
-    def user_env(self, container):
-        bus_address = str(container.exec(
+    def user_env(self, running_container):
+        running_container.exec('busctl', '--system', '--watch-bind=true', 'status')
+        running_container.exec('systemctl', 'is-system-running', '--wait')
+
+        bus_address = str(running_container.exec(
             'su', '-c', 'echo $DBUS_SESSION_BUS_ADDRESS', '-', USER_NAME,
             _out=None
         )).strip()
+
         return dict(user=USER_NAME, env=dict(DBUS_SESSION_BUS_ADDRESS=bus_address))
 
     @pytest.fixture(scope='class')
-    def gnome_shell_session(self, container, user_env):
-        container.exec('systemctl', '--user', 'start', f'{self.GNOME_SHELL_SESSION_NAME}@:99', **user_env)
+    def gnome_shell_session(self, running_container, user_env):
+        running_container.exec('systemctl', '--user', 'start', f'{self.GNOME_SHELL_SESSION_NAME}@:99', **user_env)
         return self.GNOME_SHELL_SESSION_NAME
 
     @pytest.fixture(scope='class')
-    def bus_connection(self, container, user_env):
-        container.exec(
+    def bus_connection(self, running_container, user_env):
+        running_container.exec(
             'busctl', '--user', '--watch-bind=true', 'status',
             **user_env
         )
 
-        hostport = container.inspect('{{json .NetworkSettings.Ports}}')['1234/tcp'][0];
+        hostport = running_container.inspect('{{json .NetworkSettings.Ports}}')['1234/tcp'][0];
         host = hostport['HostIp'] or '127.0.0.1'
         port = hostport['HostPort']
 
@@ -197,11 +188,9 @@ class CommonTests:
         )
         request.cls.current_dbus_interface = iface
 
-        try:
-            yield iface
+        yield iface
 
-        finally:
-            request.cls.current_dbus_interface = None
+        request.cls.current_dbus_interface = None
 
     @pytest.fixture(scope='class', autouse=True)
     def extension_setup(self, extension_test_interface):

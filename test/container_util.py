@@ -66,6 +66,10 @@ class Container:
         podman.start(self.container_id)
         self.console.attach()
 
+    def stop(self):
+        podman.stop(self.container_id)
+        self.console.wait()
+
     def exec(self, *args, user=None, env=dict(), **kwargs):
         user_args = [] if user is None else ['--user', user]
         user_args.extend(f'--env={k}={v}' for k, v in env.items())
@@ -97,5 +101,5 @@ class ComposeProject:
 
         return Container(container_id)
 
-    def down(self, *names):
-        self.compose.down('-v', *names)
+    def down(self, *names, **kwargs):
+        return self.compose.down('-v', *names, **kwargs)

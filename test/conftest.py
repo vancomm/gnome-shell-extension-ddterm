@@ -1,4 +1,6 @@
 import contextlib
+import os
+import sys
 
 import pytest
 
@@ -6,14 +8,34 @@ from . import container_util
 
 
 @pytest.fixture(scope='session')
-def compose_service_name(request):
-    return request.param
+def global_tmp_path(tmp_path_factory):
+    return tmp_path_factory.getbasetemp().parent
+
+
+@pytest.fixture(scope='session')
+def xvfb_fbdir(tmp_path_factory):
+    return tmp_path_factory.mktemp('xvfb')
+
+
+@pytest.fixture(scope='session')
+def compose_project(xvfb_fbdir, request):
+    os.environ['DDTERM_TEST_XVFB_FBDIR'] = str(xvfb_fbdir)
+    project = container_util.ComposeProject()
+
+    yield project
+
+    project.down()
+
+
+@pytest.fixture(scope='session')
+def compose_container(compose_project, request):
+    return compose_project.create(request.param)
 
 
 def pytest_generate_tests(metafunc):
-    if 'compose_service_name' in metafunc.fixturenames:
+    if 'compose_container' in metafunc.fixturenames:
         metafunc.parametrize(
-            'compose_service_name',
+            'compose_container',
             (
                 pytest.param(name, marks=pytest.mark.uses_compose_service.with_args(name))
                 for name in metafunc.config.option.container
