@@ -56,6 +56,15 @@ class ScreenshotContextManager(contextlib.AbstractContextManager):
         self.extra.append(extras.png(base64.b64encode(png_blob).decode('ascii')))
 
 
+@pytest.fixture
+def screenshot(xvfb_fbdir, extra, pytestconfig):
+    return ScreenshotContextManager(
+        pytestconfig.getoption('--screenshot-failing-only'),
+        xvfb_fbdir / 'Xvfb_screen0',
+        extra
+    )
+
+
 @pytest.mark.runtest_cm.with_args(lambda item, when: item.cls.journal_context(item, when))
 class CommonTests:
     GNOME_SHELL_SESSION_NAME: str
@@ -164,14 +173,6 @@ class CommonTests:
             name='org.gnome.Shell',
             path='/org/gnome/Shell',
             interface='org.gnome.Shell.Extensions',
-        )
-
-    @pytest.fixture
-    def screenshot(self, xvfb_fbdir, extra, pytestconfig):
-        return ScreenshotContextManager(
-            pytestconfig.getoption('--screenshot-failing-only'),
-            xvfb_fbdir / 'Xvfb_screen0',
-            extra
         )
 
     @pytest.fixture(scope='class')
