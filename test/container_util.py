@@ -70,13 +70,8 @@ class Container:
         podman.stop(self.container_id)
         self.console.wait()
 
-    def exec(self, *args, user=None, env=dict(), **kwargs):
-        user_args = [] if user is None else ['--user', user]
-        user_args.extend(f'--env={k}={v}' for k, v in env.items())
-
-        return podman.exec(
-            *user_args, self.container_id, *args, **kwargs
-        )
+    def exec(self, *args, **kwargs):
+        return podman.exec(self.container_id, *args, **kwargs)
 
     def inspect(self, format=None):
         format_args = () if format is None else ('--format', format)

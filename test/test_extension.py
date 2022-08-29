@@ -118,28 +118,10 @@ class CommonTests:
             compose_container.stop()
 
     @pytest.fixture(scope='class')
-    def user_env(self, running_container):
+    def user_bus(self, running_container):
         running_container.exec('busctl', '--system', '--watch-bind=true', 'status')
         running_container.exec('systemctl', 'is-system-running', '--wait')
-
-        bus_address = str(running_container.exec(
-            'su', '-c', 'echo $DBUS_SESSION_BUS_ADDRESS', '-', USER_NAME,
-            _out=None
-        )).strip()
-
-        return dict(user=USER_NAME, env=dict(DBUS_SESSION_BUS_ADDRESS=bus_address))
-
-    @pytest.fixture(scope='class')
-    def gnome_shell_session(self, running_container, user_env):
-        running_container.exec('systemctl', '--user', 'start', f'{self.GNOME_SHELL_SESSION_NAME}@:99', **user_env)
-        return self.GNOME_SHELL_SESSION_NAME
-
-    @pytest.fixture(scope='class')
-    def user_bus(self, running_container, user_env):
-        running_container.exec(
-            'busctl', '--user', '--watch-bind=true', 'status',
-            **user_env
-        )
+        running_container.exec('su', '-c', 'busctl --user --watch-bind=true status', '-', USER_NAME)
 
         hostport = running_container.inspect('{{json .NetworkSettings.Ports}}')['1234/tcp'][0];
         host = hostport['HostIp'] or '127.0.0.1'
@@ -147,6 +129,14 @@ class CommonTests:
 
         with contextlib.closing(dbus_util.connect_tcp(host, port)) as c:
             yield c
+
+    @pytest.fixture(scope='class')
+    def gnome_shell_session(self, running_container, user_bus):
+        running_container.exec(
+            'su', '-c', f'systemctl --user start {self.GNOME_SHELL_SESSION_NAME}@:99', '-', USER_NAME
+        )
+
+        return self.GNOME_SHELL_SESSION_NAME
 
     @pytest.fixture(scope='class')
     def shell_extensions_interface(self, user_bus, gnome_shell_session):
