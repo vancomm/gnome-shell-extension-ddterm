@@ -135,7 +135,7 @@ class CommonTests:
         return self.GNOME_SHELL_SESSION_NAME
 
     @pytest.fixture(scope='class')
-    def bus_connection(self, running_container, user_env):
+    def user_bus(self, running_container, user_env):
         running_container.exec(
             'busctl', '--user', '--watch-bind=true', 'status',
             **user_env
@@ -149,9 +149,9 @@ class CommonTests:
             yield c
 
     @pytest.fixture(scope='class')
-    def shell_extensions_interface(self, bus_connection, gnome_shell_session):
+    def shell_extensions_interface(self, user_bus, gnome_shell_session):
         return dbus_util.wait_interface(
-            bus_connection,
+            user_bus,
             name='org.gnome.Shell',
             path='/org/gnome/Shell',
             interface='org.gnome.Shell.Extensions',
@@ -174,14 +174,14 @@ class CommonTests:
         return ScreenshotContextManager
 
     @pytest.fixture(scope='class')
-    def extension_test_interface(self, bus_connection, shell_extensions_interface, request):
+    def extension_test_interface(self, user_bus, shell_extensions_interface, request):
         assert request.cls is not CommonTests
         assert request.cls.current_dbus_interface is None
 
         shell_extensions_interface.EnableExtension('(s)', EXTENSION_UUID)
 
         iface = dbus_util.wait_interface(
-            bus_connection,
+            user_bus,
             name='org.gnome.Shell',
             path='/org/gnome/Shell/Extensions/ddterm',
             interface='com.github.amezin.ddterm.ExtensionTest'
