@@ -64,40 +64,48 @@ class CommonTests:
             cls.current_container.exec('systemd-cat', _in=msg)
 
     @classmethod
+    def journal_sync(cls, msg):
+        assert cls.current_container.console.tee is None
+
+        encoded = msg.encode()
+        grep_result = queue.Queue(maxsize=1)
+
+        def grep(chunk):
+            if encoded in chunk:
+                grep_result.put(chunk)
+
+        cls.current_container.console.tee = grep
+
+        try:
+            cls.journal_message(msg)
+            grep_result.get(timeout=1)
+
+        except queue.Empty as ex:
+            raise TimeoutError() from ex
+
+        finally:
+            cls.current_container.console.tee = None
+
+    @classmethod
     @contextlib.contextmanager
     def journal_context(cls, item, when):
         assert cls is not CommonTests
 
         if cls.current_container is not None:
-            cls.journal_message(f'Beginning of {item.nodeid} {when}')
+            try:
+                cls.journal_message(f'Beginning of {item.nodeid} {when}')
+            except BaseException:
+                LOGGER.exception("Can't write to journal")
 
         try:
             yield
 
         finally:
-            if cls.current_container is None:
-                return
-
-            msg = f'End of {item.nodeid} {when}'
-            encoded = msg.encode()
-
-            grep_result = queue.Queue(maxsize=1)
-
-            def grep(chunk):
-                if encoded in chunk:
-                    grep_result.put(chunk)
-
-            cls.current_container.console.tee = grep
-
-            try:
-                cls.journal_message(msg)
-                grep_result.get(timeout=1)
-
-            except Exception:
-                LOGGER.exception("Can't sync journal")
-
-            finally:
-                cls.current_container.console.tee = None
+            if cls.current_container is not None:
+                try:
+                    cls.journal_sync(f'End of {item.nodeid} {when}')
+                except BaseException:
+                    LOGGER.exception("Can't sync journal")
 
     @pytest.fixture(scope='class')
     def container(self, podman, container_image, xvfb_fbdir, global_tmp_path, request):
