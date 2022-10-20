@@ -68,12 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: generate
-        run: |
-          import json
-          import os.path
-          names = [os.path.splitext(dockerfile)[0] for dockerfile in os.listdir()]
-          print(f'::set-output name=images::{json.dumps(names)}')
-        shell: python
+        run: echo "::set-output name=images::$(./manage.py list)"
         working-directory: test/images
 
   test:
@@ -116,7 +111,7 @@ jobs:
     - run: >-
         for retry in 1 2 3;
         do
-          podman build --pull -f ${{ matrix.image }}.dockerfile && break;
+          ./manage.py build --pull ${{ matrix.image }} && break;
         done
       working-directory: test/images
     - run: |
@@ -126,7 +121,7 @@ jobs:
         tox --sitepackages --
         --self-contained-html
         --junitxml=junit.xml
-        --dockerfile images/${{ matrix.image }}.dockerfile
+        --dockerfile images/${{ matrix.image }}
         --pack ../*.shell-extension.zip
         -n auto
         --screenshot-failing-only
