@@ -1,0 +1,16 @@
+#cloud-config
+
+user:
+  name: ddterm
+  gecos: ddterm
+  plain_text_passwd: ddterm
+  lock_passwd: false
+  sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+
+disable_root: false
+ssh_deletekeys: true
+
+mounts:
+  - ["ddterm", "/mnt/ddterm", "9p", "trans=virtio,noauto,x-systemd.automount,rw", "0", "0"]
+
+final_message: Use user name 'ddterm' and password 'ddterm' to login

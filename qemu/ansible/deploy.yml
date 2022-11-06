@@ -1,7 +1,7 @@
 ---
 - hosts: all
   vars:
-    extension_pack: "{{ query('ansible.builtin.fileglob', '../*.shell-extension.zip') }}"
+    extension_pack: "{{ query('ansible.builtin.fileglob', '../../*.shell-extension.zip') }}"
 
   pre_tasks:
     - ansible.builtin.assert:

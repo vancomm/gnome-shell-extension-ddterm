@@ -1,0 +1,18 @@
+# Inputs:
+# VM_FEDORA_VERSION
+# VM_FEDORA_IMAGE_VERSION
+# VM_FEDORA_URL_SUBDIR
+# VM_DOWNLOAD_COMMAND (download.mk)
+# VM_QEMU (vm.mk)
+# VM_QEMU_OPTIONS (vm.mk)
+# VM_CREATE_DISK_SIZE (vm.mk)
+# VM_CREATE_DISK_OPTIONS (vm.mk)
+# VM_SSH_KEY (vm.mk)
+# VM_CONFIG_DISK (vm.mk)
+
+VM_NAME := f$(VM_FEDORA_VERSION)
+VM_FEDORA_BASE_URL := https://download.fedoraproject.org/pub/fedora/linux/releases$(addprefix /,$(VM_FEDORA_URL_SUBDIR))/$(VM_FEDORA_VERSION)/Cloud/x86_64/images
+VM_IMAGE_URL := $(VM_FEDORA_BASE_URL)/Fedora-Cloud-Base-$(VM_FEDORA_VERSION)-$(VM_FEDORA_IMAGE_VERSION).x86_64.qcow2
+VM_IMAGE_CHECKSUM_URL := $(VM_FEDORA_BASE_URL)/Fedora-Cloud-$(VM_FEDORA_VERSION)-$(VM_FEDORA_IMAGE_VERSION)-x86_64-CHECKSUM
+
+include vm.mk

@@ -41,8 +41,14 @@
     name:
       - spice-vdagent
     state: latest
-  when: ansible_virtualization_type == 'kvm'
   register: spice_vdagent
+
+- name: Install linux-image-extra-virtual
+  ansible.builtin.apt:
+    name:
+      - linux-image-extra-virtual
+    state: latest
+  when: ansible_facts['distribution'] == "Ubuntu"
 
 - name: Check if reboot is necessary
   ansible.builtin.stat:

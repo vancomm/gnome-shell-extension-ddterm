@@ -1,0 +1,43 @@
+#!/usr/bin/env expect
+
+# Find host-side forwarded port for QEMU user networking.
+# Usage: ./get-hostfwd-endpoint.expect unix-client:qemu/monitor/socket 127.0.0.1 guest-port
+# Unfortunately, no QMP alternative for "info usernet", so parsing HMP output.
+
+set socat_source [lindex $argv 0]
+set host_addr [lindex $argv 1]
+set guest_port [lindex $argv 2]
+
+proc notfound {} {
+	upvar host_addr host_addr guest_port guest_port
+	send_error "Port mapping with host IP $host_addr and guest port $guest_port not found\n"
+	exit 1
+}
+
+set timeout 5
+log_user 0
+#log_file -noappend -a /dev/stderr
+
+spawn socat $socat_source stdio
+
+expect -nocase -re {(?n)^\(qemu\)}
+
+send "info usernet\n"
+
+expect {
+	-re {(?n)^\s*TCP\[HOST_FORWARD\]\s+\d+\s+(\S+)\s+(\d+)\s+\S+\s+(\d+)\s+} {
+		if {"$expect_out(1,string)" == "$host_addr" && "$expect_out(3,string)" == "$guest_port"} {
+			send_user "$expect_out(1,string) $expect_out(2,string)\n"
+		} else {
+			exp_continue
+		}
+	}
+
+	-nocase -re {(?n)^\(qemu\)} notfound
+	eof notfound
+
+	timeout {
+		send_error "Timed out\n"
+		notfound
+	}
+}

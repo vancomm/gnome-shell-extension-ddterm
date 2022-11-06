@@ -33,7 +33,6 @@
     name:
       - spice-vdagent
     state: latest
-  when: ansible_virtualization_type == 'kvm'
   register: spice_vdagent
 
 - name: Check if reboot is necessary
