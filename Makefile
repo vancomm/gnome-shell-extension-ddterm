@@ -6,6 +6,9 @@ SHELL := /bin/bash
 
 EXTENSION_UUID := ddterm@amezin.github.com
 
+TRUE_VALUES := yes YES true TRUE on ON 1
+is-true = $(filter 1,$(words $(filter $(TRUE_VALUES),$(1))))
+
 all clean:
 .PHONY: all clean
 

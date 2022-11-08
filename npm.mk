@@ -29,3 +29,16 @@ lint: lint/eslintrc-gjs.yml $(ESLINT_CMD)
 
 .PHONY: lint
 all: lint
+
+# Autoinstall
+
+NPM_AUTOINSTALL := yes
+
+ifeq ($(call is-true,$(NPM_AUTOINSTALL)),1)
+
+$(HANDLEBARS_DIST) $(RXJS_DIST) $(ESLINT_CMD): node_modules/.package-lock.json
+
+node_modules/.package-lock.json: package.json package-lock.json
+	npm install
+
+endif

@@ -2,8 +2,6 @@
 # (could be necessary on older distros without gtk4-builder-tool)
 
 WITH_GTK4 := yes
-TRUE_VALUES := yes YES true TRUE 1
-is-true = $(filter $(TRUE_VALUES),$(1))
 
 GTK3_HANDCRAFTED_UI := menus.ui
 EXTENSION_PACK_CONTENT += $(GTK3_HANDCRAFTED_UI)
