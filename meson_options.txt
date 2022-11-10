@@ -1,0 +1,6 @@
+option(
+  'gtk4',
+  type: 'feature',
+  value: 'auto',
+  description: 'Build Gtk 4 ui (GNOME 40)'
+)

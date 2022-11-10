@@ -116,11 +116,15 @@ const Application = GObject.registerClass(
 
             this.add_action(close_preferences_action);
 
-            const settings_source = Gio.SettingsSchemaSource.new_from_directory(
-                APP_DATA_DIR.get_child('schemas').get_path(),
-                Gio.SettingsSchemaSource.get_default(),
-                false
-            );
+            const schemas_dir = APP_DATA_DIR.get_child('schemas');
+            const default_settings_source = Gio.SettingsSchemaSource.get_default();
+            const settings_source = schemas_dir.query_exists(null)
+                ? Gio.SettingsSchemaSource.new_from_directory(
+                    schemas_dir.get_path(),
+                    default_settings_source,
+                    false
+                )
+                : default_settings_source;
 
             this.settings = new settings.Settings({
                 gsettings: new Gio.Settings({
