@@ -79,11 +79,15 @@ var WindowManager = GObject.registerClass(
         _init(params) {
             super._init(params);
 
+            this.meta_settings = Gio.Settings.new('org.gnome.mutter');
+
             this._current_window = null;
             this.current_workarea = null;
             this.current_monitor_scale = 1;
             this.current_target_rect = null;
             this.current_monitor_index = 0;
+
+            this.auto_maximize_suspended = false;
 
             this.show_animation = Clutter.AnimationMode.LINEAR;
             this.show_animation_duration = WM.SHOW_WINDOW_ANIMATION_TIME;
@@ -529,6 +533,7 @@ var WindowManager = GObject.registerClass(
             const mapped = this._current_window_mapped();
             if (!mapped) {
                 if (win.get_client_type() === Meta.WindowClientType.WAYLAND) {
+                    this.suspend_auto_maximize();
                     debug('Scheduling geometry fixup on map');
                     this._schedule_geometry_fixup(this.current_window);
                     this.current_window.move_to_monitor(this.current_monitor_index);
@@ -771,6 +776,7 @@ var WindowManager = GObject.registerClass(
 
         _update_window_geometry(force_monitor = false) {
             this.geometry_fixup_connections.disconnect();
+            this.unsuspend_auto_maximize();
 
             if (!this.current_window)
                 return;
@@ -864,6 +870,23 @@ var WindowManager = GObject.registerClass(
             this.current_window.unmaximize(flags);
         }
 
+        suspend_auto_maximize() {
+            if (!Meta.prefs_get_auto_maximize())
+                return;
+
+            this.meta_settings.set_boolean('auto-maximize', false);
+            printerr(`auto-maximize: ${Meta.prefs_get_auto_maximize()}`);
+            this.auto_maximize_suspended = true;
+        }
+
+        unsuspend_auto_maximize() {
+            if (!this.auto_maximize_suspended)
+                return;
+
+            this.auto_maximize_suspended = false;
+            this.meta_settings.set_boolean('auto-maximize', true);
+        }
+
         _release_window(win) {
             if (!win || win !== this.current_window)
                 return;
@@ -877,6 +900,8 @@ var WindowManager = GObject.registerClass(
 
             this.hide_when_focus_lost_connections.disconnect();
             this.animation_overrides_connections.disconnect();
+
+            this.unsuspend_auto_maximize();
         }
 
         disable() {
