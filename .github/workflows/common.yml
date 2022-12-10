@@ -123,11 +123,6 @@ jobs:
     - uses: actions/setup-node@v3
     - run: echo "::add-matcher::.github/problem-matchers/generic.json"
     - run: git config --global --replace-all safe.directory "$GITHUB_WORKSPACE"
-    - id: setup_testspace
-      uses: testspace-com/setup-testspace@v1
-      with:
-        domain: ${{ github.repository_owner }}
-      continue-on-error: true
     - uses: actions/download-artifact@v3
       with:
         name: pack
@@ -149,8 +144,12 @@ jobs:
         --screenshot-failing-only
         -v
       working-directory: test
-    - run: testspace --verbose "[${{ matrix.image }}]./test/junit.xml" "[${{ matrix.image }}]+./test/report.html"
-      if: ${{ always() && steps.setup_testspace.outcome == 'success' }}
+    - run: |
+        curl -X PUT -T junit.xml -H "Authorization: Bearer $CDASH_TOKEN" -L "https://my.cdash.org/CDash/submit.php?project=ddterm&FileName=junit.xml&MD5=$(md5sum junit.xml)"
+      env:
+        CDASH_TOKEN: ${{ secrets.CDASH_TOKEN }}
+      if: always()
+      working-directory: test
     - uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.image }}
