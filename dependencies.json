@@ -1,0 +1,30 @@
+{
+ "Gtk": {
+  "3.0": {
+   "arch": "gtk3",
+   "debian": "gir1.2-gtk-3.0",
+   "fedora": "gtk3"
+  }
+ },
+ "Gdk": {
+  "3.0": {
+   "arch": "gtk3",
+   "debian": "gir1.2-gtk-3.0",
+   "fedora": "gtk3"
+  }
+ },
+ "Vte": {
+  "2.91": {
+   "arch": "vte3",
+   "debian": "gir1.2-vte-2.91",
+   "fedora": "vte291"
+  }
+ },
+ "Pango": {
+  "1.0": {
+   "arch": "pango",
+   "debian": "gir1.2-pango-1.0",
+   "fedora": "pango"
+  }
+ }
+}
