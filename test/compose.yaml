@@ -24,3 +24,6 @@ services:
 
   centos-9:
     image: ghcr.io/ddterm/gnome-shell-pod/centos-9:2022.12.17.0
+
+  opensuse-leap-15.4:
+    image: ghcr.io/ddterm/gnome-shell-pod/opensuse-leap-15.4:suse
