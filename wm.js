@@ -88,6 +88,7 @@ var WindowManager = GObject.registerClass(
             this.current_monitor_index = 0;
 
             this.auto_maximize_suspended = false;
+            this.center_new_windows_suspended = false;
 
             this.show_animation = Clutter.AnimationMode.LINEAR;
             this.show_animation_duration = WM.SHOW_WINDOW_ANIMATION_TIME;
@@ -534,6 +535,7 @@ var WindowManager = GObject.registerClass(
             if (!mapped) {
                 if (win.get_client_type() === Meta.WindowClientType.WAYLAND) {
                     this.suspend_auto_maximize();
+                    this.suspend_center_new_windows();
                     debug('Scheduling geometry fixup on map');
                     this._schedule_geometry_fixup(this.current_window);
                     this.current_window.move_to_monitor(this.current_monitor_index);
@@ -777,6 +779,7 @@ var WindowManager = GObject.registerClass(
         _update_window_geometry(force_monitor = false) {
             this.geometry_fixup_connections.disconnect();
             this.unsuspend_auto_maximize();
+            this.unsuspend_center_new_windows();
 
             if (!this.current_window)
                 return;
@@ -887,6 +890,23 @@ var WindowManager = GObject.registerClass(
             this.meta_settings.set_boolean('auto-maximize', true);
         }
 
+        suspend_center_new_windows() {
+            if (!Meta.prefs_get_center_new_windows())
+                return;
+
+            this.meta_settings.set_boolean('center-new-windows', false);
+            printerr(`center-new-windows: ${Meta.prefs_get_center_new_windows()}`);
+            this.center_new_windows_suspended = true;
+        }
+
+        unsuspend_center_new_windows() {
+            if (!this.center_new_windows_suspended)
+                return;
+
+            this.center_new_windows_suspended = false;
+            this.meta_settings.set_boolean('center-new-windows', true);
+        }
+
         _release_window(win) {
             if (!win || win !== this.current_window)
                 return;
@@ -902,6 +922,7 @@ var WindowManager = GObject.registerClass(
             this.animation_overrides_connections.disconnect();
 
             this.unsuspend_auto_maximize();
+            this.unsuspend_center_new_windows();
         }
 
         disable() {
