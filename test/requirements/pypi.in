@@ -1,6 +1,4 @@
---only-binary :all:
-
-pytest~=7.2.0
+git+https://github.com/amezin/pytest.git@82d6e4c2b10be0c62719fa3e440aa1d6fc6b73ea#egg=pytest
 pytest-xdist[psutil,setproctitle]~=3.1.0
 pytest-html~=3.2.0
 pytest-rerunfailures~=10.2
