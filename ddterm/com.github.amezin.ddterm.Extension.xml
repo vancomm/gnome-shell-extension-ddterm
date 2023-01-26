@@ -5,6 +5,10 @@
     <interface name="com.github.amezin.ddterm.Extension">
         <method name="Toggle"/>
         <method name="Activate"/>
+        <method name="SpawnApp">
+            <arg type="as" name="argv" direction="in"/>
+            <arg type="a{ss}" name="env" direction="in"/>
+        </method>
         <method name="GetTargetRect">
             <arg type="i" name="x" direction="out"/>
             <arg type="i" name="y" direction="out"/>

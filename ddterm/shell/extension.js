@@ -120,6 +120,10 @@ class ExtensionDBusInterface {
         activate();
     }
 
+    SpawnApp(argv, env) {
+        spawn_app(argv, env);
+    }
+
     GetTargetRect() {
         /*
          * Don't want to track mouse pointer continuously, so try to update the
@@ -306,27 +310,31 @@ function disable() {
     settings = null;
 }
 
-function spawn_app() {
+function spawn_app(argv, env) {
     if (subprocess)
         return;
 
-    const subprocess_launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.NONE);
-
     const context = global.create_app_launch_context(0, -1);
+
+    for (const k in env)
+        context.setenv(k, env[k]);
+
+    const subprocess_launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.NONE);
     subprocess_launcher.set_environ(context.get_environment());
 
-    let argv = [
+    let full_argv = [
         Me.dir.get_child(APP_ID).get_path(),
+        '--direct-launch',
         '--undecorated',
-    ];
+    ].concat(argv);
 
     if (settings.get_boolean('force-x11-gdk-backend')) {
         const prev_gdk_backend = subprocess_launcher.getenv('GDK_BACKEND');
 
         if (prev_gdk_backend === null)
-            argv.push('--unset-gdk-backend');
+            full_argv.push('--unset-gdk-backend');
         else
-            argv.push('--reset-gdk-backend', prev_gdk_backend);
+            full_argv.push('--reset-gdk-backend', prev_gdk_backend);
 
         subprocess_launcher.setenv('GDK_BACKEND', 'x11', true);
     }
@@ -338,12 +346,12 @@ function spawn_app() {
     else
         wayland_client = null;
 
-    printerr(`Starting ddterm app: ${JSON.stringify(argv)}`);
+    printerr(`Starting ddterm app: ${JSON.stringify(full_argv)}`);
 
     if (wayland_client)
-        subprocess = wayland_client.spawnv(global.display, argv);
+        subprocess = wayland_client.spawnv(global.display, full_argv);
     else
-        subprocess = subprocess_launcher.spawnv(argv);
+        subprocess = subprocess_launcher.spawnv(full_argv);
 
     subprocess.wait_async(null, subprocess_terminated);
 }
@@ -384,7 +392,7 @@ function activate() {
         else
             app_dbus.action_group.activate_action('toggle', null);
     } else {
-        spawn_app();
+        spawn_app(['--undecorated'], {});
     }
 }
 

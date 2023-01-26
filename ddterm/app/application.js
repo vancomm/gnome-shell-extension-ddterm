@@ -42,6 +42,7 @@ const { Gdk, Gtk } = imports.gi;
 
 const { rxjs } = imports.ddterm.thirdparty.rxjs;
 const { rxutil, settings } = imports.ddterm.rx;
+const { extensiondbus } = imports.ddterm.app;
 
 const APP_DIR = Me.dir.get_child('ddterm').get_child('app');
 
@@ -85,6 +86,14 @@ const Application = GObject.registerClass(
                 GLib.OptionFlags.NONE,
                 GLib.OptionArg.STRING,
                 'Set GDK_BACKEND variable for subprocesses',
+                null
+            );
+            this.add_main_option(
+                'direct-launch',
+                0,
+                GLib.OptionFlags.HIDDEN,
+                GLib.OptionArg.NONE,
+                'Do not use this flag',
                 null
             );
 
@@ -255,7 +264,23 @@ const Application = GObject.registerClass(
             this.window.show();
         }
 
+        run(argv) {
+            this.argv = argv;
+            return super.run(argv);
+        }
+
         handle_local_options(_, options) {
+            if (!options.contains('direct-launch')) {
+                const extension_iface = extensiondbus.create();
+                const env = {};
+
+                for (const k of GLib.listenv())
+                    env[k] = GLib.getenv(k);
+
+                extension_iface.SpawnAppSync(this.argv.slice(1), env);
+                return 0;
+            }
+
             if (options.contains('undecorated'))
                 this.decorated = false;
 
