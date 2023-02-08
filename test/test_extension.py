@@ -3,7 +3,6 @@ import collections
 import contextlib
 import functools
 import itertools
-import json
 import logging
 import math
 import pathlib
@@ -28,10 +27,6 @@ LOGGER = logging.getLogger(__name__)
 Rect = collections.namedtuple('Rect', ('x', 'y', 'width', 'height'))
 MonitorConfig = collections.namedtuple('MonitorConfig', ('current_index', 'setting'))
 MonitorInfo = collections.namedtuple('MonitorInfo', ('index', 'geometry', 'scale', 'workarea'))
-
-THIS_DIR = pathlib.Path(__file__).parent.resolve()
-TEST_SRC_DIR = THIS_DIR / 'extension'
-SRC_DIR = THIS_DIR.parent
 
 EXTENSIONS_INSTALL_DIR = pathlib.PurePosixPath('/usr/share/gnome-shell/extensions')
 USER_NAME = 'gnomeshell'
@@ -61,36 +56,28 @@ def mkpairs(*args, **kwargs):
     return list(allpairspy.AllPairs(*args, **kwargs))
 
 
-def load_extension_metadata(src_dir, filename='metadata.json'):
-    with open(src_dir / filename, 'r') as f:
-        return json.load(f)
-
-
-@pytest.fixture(scope='session')
-def ddterm_metadata():
-    return load_extension_metadata(SRC_DIR, 'metadata.json.in')
-
-
-@pytest.fixture(scope='session')
-def test_metadata():
-    return load_extension_metadata(TEST_SRC_DIR)
-
-
 @pytest.fixture(scope='session')
 def xvfb_fbdir(tmpdir_factory):
     return tmpdir_factory.mktemp('xvfb')
 
 
 @pytest.fixture(scope='session')
-def common_volumes(ddterm_metadata, test_metadata, extension_pack, xvfb_fbdir):
+def common_volumes(
+    src_dir,
+    test_extension_src_dir,
+    extension_uuid,
+    test_extension_uuid,
+    extension_pack,
+    xvfb_fbdir
+):
     if extension_pack:
         src_mount = (extension_pack, extension_pack, 'ro')
     else:
-        src_mount = (SRC_DIR, EXTENSIONS_INSTALL_DIR / ddterm_metadata['uuid'], 'ro')
+        src_mount = (src_dir, EXTENSIONS_INSTALL_DIR / extension_uuid, 'ro')
 
     return [
         src_mount,
-        (TEST_SRC_DIR, EXTENSIONS_INSTALL_DIR / test_metadata['uuid'], 'ro'),
+        (test_extension_src_dir, EXTENSIONS_INSTALL_DIR / test_extension_uuid, 'ro'),
         (xvfb_fbdir, '/xvfb', 'rw')
     ]
 
@@ -555,6 +542,7 @@ class CommonFixtures:
     @pytest.fixture(scope='class')
     def container(
         self,
+        test_src_dir,
         podman,
         container_image,
         common_volumes,
@@ -566,7 +554,7 @@ class CommonFixtures:
 
         volumes = common_volumes + [
             (
-                THIS_DIR / pathlib.PurePosixPath(path).relative_to('/'),
+                test_src_dir / pathlib.PurePosixPath(path).relative_to('/'),
                 pathlib.PurePosixPath(path),
                 'ro'
             )
@@ -663,8 +651,8 @@ class CommonFixtures:
         )
 
     @pytest.fixture(scope='class')
-    def enable_ddterm(self, shell_extensions_interface, ddterm_metadata, install_ddterm):
-        enable_extension(shell_extensions_interface, ddterm_metadata['uuid'])
+    def enable_ddterm(self, shell_extensions_interface, extension_uuid, install_ddterm):
+        enable_extension(shell_extensions_interface, extension_uuid)
 
     @pytest.fixture(scope='class')
     def extension_interface(self, bus_connection, enable_ddterm):
@@ -676,8 +664,8 @@ class CommonFixtures:
         )
 
     @pytest.fixture(scope='class')
-    def enable_test(self, shell_extensions_interface, test_metadata, enable_ddterm):
-        enable_extension(shell_extensions_interface, test_metadata['uuid'])
+    def enable_test(self, shell_extensions_interface, test_extension_uuid, enable_ddterm):
+        enable_extension(shell_extensions_interface, test_extension_uuid)
 
     @pytest.fixture(scope='class')
     def test_interface(self, bus_connection, enable_test, request):
@@ -1378,16 +1366,16 @@ class TestDependencies(CommonFixtures):
     N_MONITORS = 1
 
     @pytest.fixture(scope='session')
-    def common_volumes(self, common_volumes):
-        mount = (SRC_DIR, SRC_DIR, 'ro')
+    def common_volumes(self, src_dir, common_volumes):
+        mount = (src_dir, src_dir, 'ro')
         if mount in common_volumes:
             return common_volumes
 
         return common_volumes + [mount]
 
-    def test_manifest(self, container, user_env):
+    def test_manifest(self, src_dir, container, user_env):
         container.exec(
-            str(SRC_DIR / 'ddterm' / 'app' / 'tools' / 'dependencies-update.js'),
+            str(src_dir / 'ddterm' / 'app' / 'tools' / 'dependencies-update.js'),
             '--dry-run',
             timeout=60,
             **user_env

@@ -1,5 +1,7 @@
 import contextlib
+import json
 import pathlib
+import zipfile
 
 import pytest
 import yaml
@@ -7,8 +9,22 @@ import yaml
 from . import container_util
 
 
-TEST_SRC_DIR = pathlib.Path(__file__).parent.resolve()
 IMAGES_STASH_KEY = pytest.StashKey[list]()
+
+
+@pytest.fixture(scope='session')
+def test_src_dir():
+    return pathlib.Path(__file__).parent.resolve()
+
+
+@pytest.fixture(scope='session')
+def test_extension_src_dir(test_src_dir):
+    return test_src_dir / 'extension'
+
+
+@pytest.fixture(scope='session')
+def src_dir(test_src_dir):
+    return test_src_dir.parent
 
 
 @pytest.fixture(scope='session')
@@ -32,6 +48,35 @@ def extension_pack(request):
 
     if pack:
         return pack.resolve()
+
+
+@pytest.fixture(scope='session')
+def extension_metadata(src_dir, extension_pack):
+    with contextlib.ExitStack() as stack:
+        if extension_pack:
+            z = stack.enter_context(zipfile.ZipFile(extension_pack))
+            f = stack.enter_context(z.open('metadata.json'))
+
+        else:
+            f = stack.enter_context(open(src_dir / 'metadata.json'))
+
+        return json.load(f)
+
+
+@pytest.fixture(scope='session')
+def test_extension_metadata(test_extension_src_dir):
+    with open(test_extension_src_dir / 'metadata.json') as f:
+        return json.load(f)
+
+
+@pytest.fixture(scope='session')
+def extension_uuid(extension_metadata):
+    return extension_metadata['uuid']
+
+
+@pytest.fixture(scope='session')
+def test_extension_uuid(test_extension_metadata):
+    return test_extension_metadata['uuid']
 
 
 def pytest_addoption(parser):
