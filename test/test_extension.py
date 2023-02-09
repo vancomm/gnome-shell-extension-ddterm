@@ -2,7 +2,6 @@ import base64
 import collections
 import contextlib
 import functools
-import itertools
 import logging
 import math
 import pathlib
@@ -10,7 +9,6 @@ import queue
 import subprocess
 
 import allpairspy
-import filelock
 import pytest
 import wand.image
 import Xlib.display
@@ -19,7 +17,7 @@ import Xlib.X
 from pytest_html import extras
 from gi.repository import GLib, Gio
 
-from . import container_util, dbus_util, glib_util
+from . import container_util, dbus_util, glib_util, systemd_container
 
 
 LOGGER = logging.getLogger(__name__)
@@ -481,14 +479,12 @@ class MouseSim(contextlib.AbstractContextManager):
         LOGGER.info('Mouse button pressed = %s', self.mouse_button_last)
 
 
-@pytest.mark.runtest_cm.with_args(lambda item, when: item.cls.journal_context(item, when))
-class CommonFixtures:
+class CommonFixtures(systemd_container.SystemdContainerFixtures):
     GNOME_SHELL_SESSION_NAME: str
     N_MONITORS: int
     PRIMARY_MONITOR = 0
     IS_MIXED_DPI = False
 
-    current_container: container_util.Container = None
     current_dbus_interface = None
 
     @classmethod
@@ -501,58 +497,22 @@ class CommonFixtures:
         except Exception:
             LOGGER.exception("Can't send log message through D-Bus")
 
-        cls.current_container.exec('systemd-cat', input=msg.encode(), interactive=True)
-
-    @classmethod
-    def journal_sync(cls, msg):
-        buffer = queue.SimpleQueue()
-        pattern = msg.encode()
-        grep = container_util.QueueOutput(buffer, lambda line: pattern in line)
-
-        with cls.current_container.console.with_output(grep):
-            cls.journal_message(msg)
-
-            try:
-                buffer.get(timeout=1)
-            except queue.Empty:
-                raise TimeoutError()
-
-    @classmethod
-    @contextlib.contextmanager
-    def journal_context(cls, item, when):
-        assert cls is not CommonTests
-
-        if cls.current_container is not None:
-            cls.journal_message(f'Beginning of {item.nodeid} {when}')
-
-        try:
-            yield
-
-        finally:
-            if cls.current_container is not None:
-                try:
-                    cls.journal_sync(f'End of {item.nodeid} {when}')
-                except Exception:
-                    LOGGER.exception("Can't sync journal")
+        super().journal_message(msg)
 
     @classmethod
     def mount_configs(cls):
         return ['/etc/systemd/system/xvfb@.service.d/fbdir.conf']
 
     @pytest.fixture(scope='class')
-    def container(
-        self,
-        test_src_dir,
-        podman,
-        container_image,
-        common_volumes,
-        global_tmp_path,
-        request
-    ):
-        assert request.cls is not CommonTests
-        assert request.cls.current_container is None
+    def container_ports(self):
+        return [
+            ('127.0.0.1', '', DBUS_PORT),
+            ('127.0.0.1', '', DISPLAY_PORT)
+        ]
 
-        volumes = common_volumes + [
+    @pytest.fixture(scope='class')
+    def container_volumes(self, test_src_dir, common_volumes, request):
+        return common_volumes + [
             (
                 test_src_dir / pathlib.PurePosixPath(path).relative_to('/'),
                 pathlib.PurePosixPath(path),
@@ -560,49 +520,6 @@ class CommonFixtures:
             )
             for path in request.cls.mount_configs()
         ]
-
-        cap_add = [
-            'SYS_NICE',
-            'SYS_PTRACE',
-            'SETPCAP',
-            'NET_RAW',
-            'NET_BIND_SERVICE',
-            'DAC_READ_SEARCH',
-        ]
-
-        publish_ports = [
-            ('127.0.0.1', '', DBUS_PORT),
-            ('127.0.0.1', '', DISPLAY_PORT)
-        ]
-
-        with filelock.FileLock(global_tmp_path / 'container-starting.lock'):
-            c = container_util.Container.run(
-                podman,
-                '--rm',
-                '--pull=never',
-                '--log-driver=none',
-                f'--publish={",".join(":".join(str(p) for p in spec) for spec in publish_ports)}',
-                f'--cap-add={",".join(cap_add)}',
-                *itertools.chain.from_iterable(
-                    ('-v', ':'.join(str(part) for part in parts))
-                    for parts in volumes
-                ),
-                container_image,
-                timeout=STARTUP_TIMEOUT_SEC
-            )
-
-        try:
-            c.attach()
-            request.cls.current_container = c
-
-            c.exec('busctl', '--system', '--watch-bind=true', 'status', timeout=STARTUP_TIMEOUT_SEC)
-            c.exec('systemctl', 'is-system-running', '--wait', timeout=STARTUP_TIMEOUT_SEC)
-
-            yield c
-
-        finally:
-            request.cls.current_container = None
-            c.kill()
 
     @pytest.fixture(scope='class')
     def user_env(self, container):
@@ -1359,24 +1276,3 @@ class TestSubscriptionLeaks(CommonFixtures):
             wait_action_in_group_enabled(app_actions, 'close-preferences', True)
             app_actions.activate_action('close-preferences', None)
             wait_action_in_group_enabled(app_actions, 'close-preferences', False)
-
-
-class TestDependencies(CommonFixtures):
-    GNOME_SHELL_SESSION_NAME = 'gnome-xsession'
-    N_MONITORS = 1
-
-    @pytest.fixture(scope='session')
-    def common_volumes(self, src_dir, common_volumes):
-        mount = (src_dir, src_dir, 'ro')
-        if mount in common_volumes:
-            return common_volumes
-
-        return common_volumes + [mount]
-
-    def test_manifest(self, src_dir, container, user_env):
-        container.exec(
-            str(src_dir / 'ddterm' / 'app' / 'tools' / 'dependencies-update.js'),
-            '--dry-run',
-            timeout=60,
-            **user_env
-        )

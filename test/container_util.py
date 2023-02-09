@@ -145,9 +145,51 @@ class Container:
         self.console = console
 
     @classmethod
-    def run(cls, podman, *args, **kwargs):
+    def run(
+        cls,
+        podman,
+        image,
+        *args,
+        tty=True,
+        rm=True,
+        pull=None,
+        log_driver=None,
+        cap_add=[],
+        publish=[],
+        volumes=[],
+        **kwargs
+    ):
+        run_opts = ['--detach']
+
+        if rm:
+            run_opts.append('--rm')
+
+        if tty:
+            run_opts.append('--tty')
+
+        if pull is not None:
+            run_opts.extend(('--pull', pull))
+
+        if log_driver is not None:
+            run_opts.extend(('--log-driver', log_driver))
+
+        for cap in cap_add:
+            run_opts.extend(('--cap-add', cap))
+
+        for spec in publish:
+            run_opts.extend(('--publish', ':'.join(str(p) for p in spec)))
+
+        for spec in volumes:
+            run_opts.extend(('--volume', ':'.join(str(p) for p in spec)))
+
         container_id = podman(
-            'run', '-td', *args, stdout=subprocess.PIPE, text=True, **kwargs
+            'run',
+            *run_opts,
+            image,
+            *args,
+            stdout=subprocess.PIPE,
+            text=True,
+            **kwargs
         ).stdout
 
         if container_id.endswith('\n'):
