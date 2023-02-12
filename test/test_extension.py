@@ -59,27 +59,6 @@ def xvfb_fbdir(tmpdir_factory):
     return tmpdir_factory.mktemp('xvfb')
 
 
-@pytest.fixture(scope='session')
-def common_volumes(
-    src_dir,
-    test_extension_src_dir,
-    extension_uuid,
-    test_extension_uuid,
-    extension_pack,
-    xvfb_fbdir
-):
-    if extension_pack:
-        src_mount = (extension_pack, extension_pack, 'ro')
-    else:
-        src_mount = (src_dir, EXTENSIONS_INSTALL_DIR / extension_uuid, 'ro')
-
-    return [
-        src_mount,
-        (test_extension_src_dir, EXTENSIONS_INSTALL_DIR / test_extension_uuid, 'ro'),
-        (xvfb_fbdir, '/xvfb', 'rw')
-    ]
-
-
 def enable_extension(shell_extensions_interface, uuid):
     info = None
 
@@ -511,8 +490,27 @@ class CommonFixtures(systemd_container.SystemdContainerFixtures):
         ]
 
     @pytest.fixture(scope='class')
-    def container_volumes(self, test_src_dir, common_volumes, request):
-        return common_volumes + [
+    def container_volumes(
+        self,
+        extension_uuid,
+        extension_pack,
+        src_dir,
+        test_extension_uuid,
+        test_extension_src_dir,
+        test_src_dir,
+        xvfb_fbdir,
+        request,
+    ):
+        if extension_pack:
+            src_mount = (extension_pack, extension_pack, 'ro')
+        else:
+            src_mount = (src_dir, EXTENSIONS_INSTALL_DIR / extension_uuid, 'ro')
+
+        return [
+            src_mount,
+            (test_extension_src_dir, EXTENSIONS_INSTALL_DIR / test_extension_uuid, 'ro'),
+            (xvfb_fbdir, '/xvfb', 'rw'),
+        ] + [
             (
                 test_src_dir / pathlib.PurePosixPath(path).relative_to('/'),
                 pathlib.PurePosixPath(path),
