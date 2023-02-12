@@ -1,4 +1,3 @@
-import base64
 import collections
 import contextlib
 import functools
@@ -10,14 +9,12 @@ import subprocess
 
 import allpairspy
 import pytest
-import wand.image
 import Xlib.display
 import Xlib.X
 
-from pytest_html import extras
 from gi.repository import GLib, Gio
 
-from . import container_util, dbus_util, glib_util, systemd_container
+from . import container_util, dbus_util, glib_util, xvfb_container
 
 
 LOGGER = logging.getLogger(__name__)
@@ -28,10 +25,6 @@ MonitorInfo = collections.namedtuple('MonitorInfo', ('index', 'geometry', 'scale
 
 EXTENSIONS_INSTALL_DIR = pathlib.PurePosixPath('/usr/share/gnome-shell/extensions')
 USER_NAME = 'gnomeshell'
-DISPLAY_NUMBER = 99
-X11_DISPLAY_BASE_PORT = 6000
-DISPLAY_PORT = X11_DISPLAY_BASE_PORT + DISPLAY_NUMBER
-DISPLAY = f':{DISPLAY_NUMBER}'
 DBUS_PORT = 1234
 
 MAXIMIZE_MODES = ['not-maximized', 'maximize-early', 'maximize-late']
@@ -52,11 +45,6 @@ STARTUP_TIMEOUT_MS = STARTUP_TIMEOUT_SEC * 1000
 
 def mkpairs(*args, **kwargs):
     return list(allpairspy.AllPairs(*args, **kwargs))
-
-
-@pytest.fixture(scope='session')
-def xvfb_fbdir(tmpdir_factory):
-    return tmpdir_factory.mktemp('xvfb')
 
 
 def enable_extension(shell_extensions_interface, uuid):
@@ -104,34 +92,6 @@ def resize_point(frame_rect, window_pos, monitor_scale):
             y += edge_offset
 
     return x, y
-
-
-class ScreenshotContextManager(contextlib.AbstractContextManager):
-    def __init__(self, failing_only, screen_path, extra):
-        super().__init__()
-        self.failing_only = failing_only
-        self.screen_path = screen_path
-        self.extra = extra
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type is None and self.failing_only:
-            return
-
-        xwd_blob = pathlib.Path(self.screen_path).read_bytes()
-
-        with wand.image.Image(blob=xwd_blob, format='xwd') as img:
-            png_blob = img.make_blob('png')
-
-        self.extra.append(extras.png(base64.b64encode(png_blob).decode('ascii')))
-
-
-@pytest.fixture
-def screenshot(xvfb_fbdir, extra, pytestconfig):
-    return ScreenshotContextManager(
-        pytestconfig.getoption('--screenshot-failing-only'),
-        xvfb_fbdir / 'Xvfb_screen0',
-        extra
-    )
 
 
 def compute_target_rect(size, pos, monitor):
@@ -394,15 +354,11 @@ class Settings:
 
 
 class MouseSim(contextlib.AbstractContextManager):
-    def __init__(self, container, test_interface, mods_getter_broken):
-        self.container = container
+    def __init__(self, display, test_interface, mods_getter_broken):
         self.test_interface = test_interface
         self.mods_getter_broken = mods_getter_broken
         self.mouse_button_last = False
-
-        host, port = container.get_port(DISPLAY_PORT)
-        display_number = int(port) - X11_DISPLAY_BASE_PORT
-        self.display = Xlib.display.Display(f'{host}:{display_number}')
+        self.display = Xlib.display.Display(display)
 
     def close(self):
         self.display.close()
@@ -458,7 +414,7 @@ class MouseSim(contextlib.AbstractContextManager):
         LOGGER.info('Mouse button pressed = %s', self.mouse_button_last)
 
 
-class CommonFixtures(systemd_container.SystemdContainerFixtures):
+class CommonFixtures(xvfb_container.XvfbContainerFixtures):
     GNOME_SHELL_SESSION_NAME: str
     N_MONITORS: int
     PRIMARY_MONITOR = 0
@@ -483,10 +439,9 @@ class CommonFixtures(systemd_container.SystemdContainerFixtures):
         return ['/etc/systemd/system/xvfb@.service.d/fbdir.conf']
 
     @pytest.fixture(scope='class')
-    def container_ports(self):
-        return [
-            ('127.0.0.1', '', DBUS_PORT),
-            ('127.0.0.1', '', DISPLAY_PORT)
+    def container_ports(self, xvfb_publish_ports):
+        return xvfb_publish_ports + [
+            ('127.0.0.1', '', DBUS_PORT)
         ]
 
     @pytest.fixture(scope='class')
@@ -498,7 +453,7 @@ class CommonFixtures(systemd_container.SystemdContainerFixtures):
         test_extension_uuid,
         test_extension_src_dir,
         test_src_dir,
-        xvfb_fbdir,
+        xvfb_volumes,
         request,
     ):
         if extension_pack:
@@ -509,8 +464,7 @@ class CommonFixtures(systemd_container.SystemdContainerFixtures):
         return [
             src_mount,
             (test_extension_src_dir, EXTENSIONS_INSTALL_DIR / test_extension_uuid, 'ro'),
-            (xvfb_fbdir, '/xvfb', 'rw'),
-        ] + [
+        ] + xvfb_volumes + [
             (
                 test_src_dir / pathlib.PurePosixPath(path).relative_to('/'),
                 pathlib.PurePosixPath(path),
@@ -539,9 +493,14 @@ class CommonFixtures(systemd_container.SystemdContainerFixtures):
     @pytest.fixture(scope='class')
     def gnome_shell_session(self, container, user_env, install_ddterm):
         container.exec(
-            'systemctl', '--user', 'start', f'{self.GNOME_SHELL_SESSION_NAME}@{DISPLAY}',
-            timeout=STARTUP_TIMEOUT_SEC, **user_env
+            'systemctl',
+            '--user',
+            'start',
+            f'{self.GNOME_SHELL_SESSION_NAME}@{xvfb_container.DISPLAY}',
+            timeout=STARTUP_TIMEOUT_SEC,
+            **user_env
         )
+
         return self.GNOME_SHELL_SESSION_NAME
 
     @pytest.fixture(scope='class')
@@ -665,8 +624,8 @@ class CommonFixtures(systemd_container.SystemdContainerFixtures):
         return Settings(test_interface)
 
     @pytest.fixture(scope='class')
-    def mouse_sim(self, test_interface, container, shell_version):
-        with MouseSim(container, test_interface, shell_version[:2] == (3, 38)) as mouse_sim:
+    def mouse_sim(self, test_interface, host_display, shell_version):
+        with MouseSim(host_display, test_interface, shell_version[:2] == (3, 38)) as mouse_sim:
             yield mouse_sim
 
     @pytest.fixture(scope='class')
