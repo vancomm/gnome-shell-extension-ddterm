@@ -578,7 +578,7 @@ class CommonFixtures:
         ]
 
         with container_start_lock:
-            c = container_util.Container(
+            c = container_util.Container.create(
                 podman,
                 '--pull=never',
                 '--log-driver=none',

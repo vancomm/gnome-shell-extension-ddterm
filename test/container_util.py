@@ -59,14 +59,19 @@ class Podman:
 
 
 class Container:
-    def __init__(self, podman, *args, **kwargs):
+    def __init__(self, podman, container_id):
+        self.container_id = container_id
         self.podman = podman
         self.console = None
 
-        self.container_id = podman(
+    @classmethod
+    def create(cls, podman, *args, **kwargs):
+        container_id = podman(
             'container', 'create', *args,
             stdout=subprocess.PIPE, text=True, **kwargs
         ).stdout.strip()
+
+        return cls(podman, container_id)
 
     def rm(self, timeout=None, **kwargs):
         timeout = self.podman.timeout if timeout is None else timeout
