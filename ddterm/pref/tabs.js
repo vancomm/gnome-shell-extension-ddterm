@@ -23,7 +23,6 @@ const { GObject, Gtk } = imports.gi;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { backport } = Me.imports.ddterm;
 const { util } = Me.imports.ddterm.pref;
-const { rxutil, settings } = Me.imports.ddterm.rx;
 const { translations, simpleaction } = Me.imports.ddterm.util;
 
 var Widget = backport.GObject.registerClass(
@@ -43,7 +42,7 @@ var Widget = backport.GObject.registerClass(
                 '',
                 '',
                 GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
-                settings.Settings
+                Me.imports.ddterm.settings.gui.Settings
             ),
         },
     },
@@ -51,9 +50,7 @@ var Widget = backport.GObject.registerClass(
         _init(params) {
             super._init(params);
 
-            const scope = util.scope(this, this.settings);
-
-            scope.setup_widgets({
+            this.settings.bind_widgets({
                 'tab-policy': this.tab_policy_combo,
                 'tab-position': this.tab_position_combo,
                 'tab-label-ellipsize-mode': this.tab_label_ellipsize_combo,
@@ -63,7 +60,7 @@ var Widget = backport.GObject.registerClass(
 
             this.insert_action_group(
                 'settings',
-                scope.make_actions([
+                this.settings.create_action_group([
                     'tab-expand',
                     'tab-close-buttons',
                     'new-tab-button',
@@ -73,10 +70,7 @@ var Widget = backport.GObject.registerClass(
                 ])
             );
 
-            scope.set_scale_value_formatter(
-                this.tab_label_width_scale,
-                util.percent_formatter
-            );
+            util.set_scale_value_formatter(this.tab_label_width_scale, util.percent_formatter);
 
             this.insert_action_group(
                 'aux',
@@ -87,17 +81,12 @@ var Widget = backport.GObject.registerClass(
                 })
             );
 
-            scope.subscribe(
-                rxutil.property(this.tab_position_combo, 'active-id').skip_initial,
-                position => {
-                    if (['top', 'bottom'].includes(position)) {
-                        const setting = this.settings['tab-label-ellipsize-mode'];
-
-                        if (setting.value === 'none')
-                            setting.value = 'middle';
-                    }
+            this.tab_position_combo.connect('notify::active-id', () => {
+                if (['top', 'bottom'].includes(this.tab_position_combo.active_id)) {
+                    if (this.settings['tab-label-ellipsize-mode'] === 'none')
+                        this.settings['tab-label-ellipsize-mode'] = 'middle';
                 }
-            );
+            });
         }
 
         get title() {

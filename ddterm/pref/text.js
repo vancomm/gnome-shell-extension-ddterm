@@ -23,7 +23,6 @@ const { GObject, Gtk } = imports.gi;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { backport } = Me.imports.ddterm;
 const { util } = Me.imports.ddterm.pref;
-const { settings } = Me.imports.ddterm.rx;
 const { translations } = Me.imports.ddterm.util;
 
 var Widget = backport.GObject.registerClass(
@@ -42,7 +41,7 @@ var Widget = backport.GObject.registerClass(
                 '',
                 '',
                 GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
-                settings.Settings
+                Me.imports.ddterm.settings.gui.Settings
             ),
         },
     },
@@ -50,9 +49,7 @@ var Widget = backport.GObject.registerClass(
         _init(params) {
             super._init(params);
 
-            const scope = util.scope(this, this.settings);
-
-            scope.setup_widgets({
+            this.settings.bind_widgets({
                 'text-blink-mode': this.text_blink_mode_combo,
                 'cursor-blink-mode': this.cursor_blink_mode_combo,
                 'cursor-shape': this.cursor_shape_combo,
@@ -61,7 +58,7 @@ var Widget = backport.GObject.registerClass(
 
             this.insert_action_group(
                 'settings',
-                scope.make_actions([
+                this.settings.create_action_group([
                     'allow-hyperlink',
                     'audible-bell',
                     'detect-urls',
@@ -75,9 +72,10 @@ var Widget = backport.GObject.registerClass(
             );
 
             this.insert_action_group('inverse-settings',
-                scope.make_inverse_actions([
-                    'use-system-font',
-                ])
+                this.settings.create_action_group(
+                    ['use-system-font'],
+                    { 'invert-boolean': true }
+                )
             );
         }
 

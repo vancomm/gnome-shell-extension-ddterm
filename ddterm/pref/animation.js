@@ -23,7 +23,6 @@ const { GObject, Gtk } = imports.gi;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { backport } = Me.imports.ddterm;
 const { util } = Me.imports.ddterm.pref;
-const { settings } = Me.imports.ddterm.rx;
 const { translations } = Me.imports.ddterm.util;
 
 function get_seconds_format() {
@@ -61,7 +60,7 @@ var Widget = backport.GObject.registerClass(
                 '',
                 '',
                 GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
-                settings.Settings
+                Me.imports.ddterm.settings.gui.Settings
             ),
         },
     },
@@ -69,9 +68,7 @@ var Widget = backport.GObject.registerClass(
         _init(params) {
             super._init(params);
 
-            const scope = util.scope(this, this.settings);
-
-            scope.setup_widgets({
+            this.settings.bind_widgets({
                 'show-animation': this.show_animation_combo,
                 'hide-animation': this.hide_animation_combo,
                 'show-animation-duration': this.show_animation_duration_scale,
@@ -80,20 +77,13 @@ var Widget = backport.GObject.registerClass(
 
             this.insert_action_group(
                 'settings',
-                scope.make_actions([
+                this.settings.create_action_group([
                     'override-window-animation',
                 ])
             );
 
-            scope.set_scale_value_formatter(
-                this.show_animation_duration_scale,
-                seconds_formatter
-            );
-
-            scope.set_scale_value_formatter(
-                this.hide_animation_duration_scale,
-                seconds_formatter
-            );
+            util.set_scale_value_formatter(this.show_animation_duration_scale, seconds_formatter);
+            util.set_scale_value_formatter(this.hide_animation_duration_scale, seconds_formatter);
         }
 
         get title() {

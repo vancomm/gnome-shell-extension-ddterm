@@ -52,5 +52,6 @@ function _registerClass(...args) {
 }
 
 var registerClass = imports.system.version >= 16502 ? GObject.registerClass : _registerClass;
+var checkProperties = imports.system.version >= 16502 ? function () {} : _checkProperties;
 
-/* exported registerClass */
+/* exported registerClass checkProperties */

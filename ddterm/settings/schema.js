@@ -1,5 +1,5 @@
 /*
-    Copyright © 2020, 2021 Aleksandr Mezin
+    Copyright © 2023 Aleksandr Mezin
 
     This file is part of ddterm GNOME Shell extension.
 
@@ -19,18 +19,33 @@
 
 'use strict';
 
-/* exported init buildPrefsWidget */
+const { Gio } = imports.gi;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
-function init() {
-    imports.misc.extensionUtils.initTranslations();
+const SCHEMA_NAME = 'com.github.amezin.ddterm';
+
+function getSchemaSource() {
+    const schemaDir = Me.dir.get_child('schemas');
+    const defaultSource = Gio.SettingsSchemaSource.get_default();
+
+    if (!schemaDir.query_exists(null))
+        return defaultSource;
+
+    return Gio.SettingsSchemaSource.new_from_directory(
+        schemaDir.get_path(),
+        defaultSource,
+        false
+    );
 }
 
-function buildPrefsWidget() {
-    const widget = new Me.imports.ddterm.pref.widget.PrefsWidget({
-        settings: Me.imports.ddterm.settings.gui.get(),
-    });
+function getSchema() {
+    const schema = getSchemaSource().lookup(SCHEMA_NAME, true);
 
-    return widget;
+    if (!schema)
+        throw new Error(`Schema ${SCHEMA_NAME} could not be found. Please check your installation`);
+
+    return schema;
 }
+
+/* exported getSchemaSource getSchema */

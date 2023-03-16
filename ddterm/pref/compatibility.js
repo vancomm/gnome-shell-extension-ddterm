@@ -23,7 +23,6 @@ const { GObject, Gtk } = imports.gi;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { backport } = Me.imports.ddterm;
 const { util } = Me.imports.ddterm.pref;
-const { settings } = Me.imports.ddterm.rx;
 const { translations, simpleaction } = Me.imports.ddterm.util;
 
 var Widget = backport.GObject.registerClass(
@@ -41,7 +40,7 @@ var Widget = backport.GObject.registerClass(
                 '',
                 '',
                 GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
-                settings.Settings
+                Me.imports.ddterm.settings.gui.Settings
             ),
         },
     },
@@ -49,9 +48,7 @@ var Widget = backport.GObject.registerClass(
         _init(params) {
             super._init(params);
 
-            const scope = util.scope(this, this.settings);
-
-            scope.setup_widgets({
+            this.settings.bind_widgets({
                 'backspace-binding': this.backspace_binding_combo,
                 'delete-binding': this.delete_binding_combo,
                 'cjk-utf8-ambiguous-width': this.ambiguous_width_combo,

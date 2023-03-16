@@ -65,7 +65,7 @@ const NOTIFICATIONS_INTERFACE_XML = `
 const NotificationsProxy = Gio.DBusProxy.makeProxyWrapper(NOTIFICATIONS_INTERFACE_XML);
 
 const Application = backport.GObject.registerClass(
-    class DDTermPackageKitApplication extends Gio.Application {
+    class DDTermMissingDependencyNotificationApplication extends Gio.Application {
         _init(params) {
             super._init(params);
 

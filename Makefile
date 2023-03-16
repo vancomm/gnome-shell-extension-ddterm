@@ -34,6 +34,17 @@ PACK_CONTENT += $(SCHEMAS) $(SCHEMAS_COMPILED)
 schemas: $(SCHEMAS_COMPILED)
 .PHONY: schemas
 
+# Generated settings code
+
+GENERATED_SETTINGS_PSPECS := ddterm/settings/generated/pspecs.js
+
+$(GENERATED_SETTINGS_PSPECS): ddterm/settings/codegen/codegen.js $(SCHEMAS_COMPILED)
+	mkdir -p $(dir $@)
+	gjs $< >$@
+
+CLEAN += $(GENERATED_SETTINGS_PSPECS)
+PACK_CONTENT += $(GENERATED_SETTINGS_PSPECS)
+
 # Locales
 
 LOCALES := $(wildcard po/*.po)
@@ -159,6 +170,7 @@ JS_SOURCE_WILDCARDS := \
 	ddterm/backport/*.js \
 	ddterm/rx/*.js \
 	ddterm/pref/*.js \
+	ddterm/settings/*.js \
 	ddterm/shell/*.js \
 	ddterm/util/*.js \
 

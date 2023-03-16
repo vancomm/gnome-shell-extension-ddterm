@@ -5,6 +5,7 @@
 /*.shell-extension.zip
 /ddterm/app/ui/
 /ddterm/pref/ui/
+/ddterm/settings/generated/
 /ddterm/thirdparty/
 /ddterm/com.github.amezin.ddterm.desktop
 /metadata.json

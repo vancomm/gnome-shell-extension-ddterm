@@ -23,7 +23,6 @@ const { GObject, Gtk } = imports.gi;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { backport } = Me.imports.ddterm;
 const { util } = Me.imports.ddterm.pref;
-const { settings } = Me.imports.ddterm.rx;
 const { translations } = Me.imports.ddterm.util;
 
 var Widget = backport.GObject.registerClass(
@@ -39,7 +38,7 @@ var Widget = backport.GObject.registerClass(
                 '',
                 '',
                 GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
-                settings.Settings
+                Me.imports.ddterm.settings.gui.Settings
             ),
         },
     },
@@ -47,9 +46,7 @@ var Widget = backport.GObject.registerClass(
         _init(params) {
             super._init(params);
 
-            const scope = util.scope(this, this.settings);
-
-            scope.setup_widgets({
+            this.settings.bind_widgets({
                 'custom-command': this.custom_command_entry,
             });
 
@@ -61,7 +58,7 @@ var Widget = backport.GObject.registerClass(
             */
             this.insert_action_group(
                 'settings',
-                scope.make_actions([
+                this.settings.create_action_group([
                     'command',
                     'preserve-working-directory',
                 ])
