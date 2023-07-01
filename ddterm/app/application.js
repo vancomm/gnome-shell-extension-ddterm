@@ -27,10 +27,6 @@ const { GLib, GObject, Gio, Gdk, Gtk } = imports.gi;
 const { appwindow, gtktheme } = imports.ddterm.app;
 const { PrefsDialog } = imports.ddterm.pref.dialog;
 
-function load_text(file) {
-    return ByteArray.toString(file.load_contents(null)[1]);
-}
-
 var Application = GObject.registerClass(
     {
         Properties: {
@@ -40,6 +36,12 @@ var Application = GObject.registerClass(
                 '',
                 GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
                 Gio.File
+            ),
+            'metadata': GObject.ParamSpec.jsobject(
+                'metadata',
+                '',
+                '',
+                GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY
             ),
             'window': GObject.ParamSpec.object(
                 'window',
@@ -194,8 +196,6 @@ var Application = GObject.registerClass(
             Object.entries(shortcut_actions).forEach(([key, action]) => {
                 this.bind_shortcut(action, key);
             });
-
-            this.metadata = JSON.parse(load_text(this.install_dir.get_child('metadata.json')));
         }
 
         activate() {
@@ -227,9 +227,12 @@ var Application = GObject.registerClass(
             if ('_extension_dbus' in this)
                 return this._extension_dbus;
 
-            const extension_dbus_factory = Gio.DBusProxy.makeProxyWrapper(load_text(
-                this.ddterm_dir.get_child('com.github.amezin.ddterm.Extension.xml')
-            ));
+            const introspection_file =
+                this.ddterm_dir.get_child('com.github.amezin.ddterm.Extension.xml');
+
+            const extension_dbus_factory = Gio.DBusProxy.makeProxyWrapper(
+                ByteArray.toString(introspection_file.load_contents(null)[1])
+            );
 
             this._extension_dbus = extension_dbus_factory(
                 Gio.DBus.session,

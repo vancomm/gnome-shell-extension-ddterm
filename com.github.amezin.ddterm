@@ -22,9 +22,11 @@
 'use strict';
 
 const { GLib, Gio } = imports.gi;
-const System = imports.system;
 
 GLib.set_prgname('com.github.amezin.ddterm');
+
+const ByteArray = imports.byteArray;
+const System = imports.system;
 
 const THIS_FILE = Gio.File.new_for_path(System.programPath)
 const ME_DIR = THIS_FILE.get_parent();
@@ -32,8 +34,15 @@ const ME_DIR = THIS_FILE.get_parent();
 imports.searchPath.unshift(ME_DIR.get_path());
 imports.ddterm.util.translations.init(ME_DIR);
 
+const metadata = JSON.parse(ByteArray.toString(
+    ME_DIR.get_child('metadata.json').load_contents(null)[1]
+));
+
 /* fake current extension object to make 'Me.imports' and 'Me.dir' work in application context */
-Object.assign(imports.misc.extensionUtils.getCurrentExtension(), { imports, dir: ME_DIR });
+Object.assign(
+    imports.misc.extensionUtils.getCurrentExtension(),
+    { imports, metadata, dir: ME_DIR, uuid: metadata.uuid }
+);
 
 imports.ddterm.app.dependencies.gi_require(ME_DIR, {
     'Gtk': '3.0',
@@ -45,6 +54,7 @@ imports.ddterm.app.dependencies.gi_require(ME_DIR, {
 const app = new imports.ddterm.app.application.Application({
     application_id: 'com.github.amezin.ddterm',
     install_dir: ME_DIR,
+    metadata,
 });
 
 System.exit(app.run([System.programInvocationName].concat(ARGV)));
