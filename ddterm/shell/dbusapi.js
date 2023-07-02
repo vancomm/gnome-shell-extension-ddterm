@@ -23,6 +23,7 @@ const { GLib, GObject, Gio, Meta } = imports.gi;
 const ByteArray = imports.byteArray;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
+const { log_error } = Me.imports.ddterm.util.logger;
 
 function report_dbus_error_async(e, invocation) {
     if (e instanceof GLib.Error) {
@@ -34,7 +35,7 @@ function report_dbus_error_async(e, invocation) {
     if (!name.includes('.'))
         name = `org.gnome.gjs.JSError.${name}`;
 
-    logError(e, `Exception in method call: ${invocation.get_method_name()}`);
+    log_error(e, `Exception in method call: ${invocation.get_method_name()}`);
     invocation.return_dbus_error(name, e.message);
 }
 

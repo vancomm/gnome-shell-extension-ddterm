@@ -31,6 +31,7 @@ const { PanelIconProxy } = Me.imports.ddterm.shell.panelicon;
 const { Service } = Me.imports.ddterm.shell.service;
 const { WindowManager } = Me.imports.ddterm.shell.wm;
 const { WindowMatch } = Me.imports.ddterm.shell.windowmatch;
+const { log_error } = Me.imports.ddterm.util.logger;
 
 let app_process = null;
 
@@ -148,7 +149,7 @@ function enable() {
         Meta.KeyBindingFlags.NONE,
         Shell.ActionMode.NORMAL,
         () => {
-            toggle().catch(e => logError(e, 'Failed to toggle ddterm by keybinding'));
+            toggle().catch(e => log_error(e, 'Failed to toggle ddterm by keybinding'));
         }
     );
 
@@ -158,7 +159,7 @@ function enable() {
         Meta.KeyBindingFlags.NONE,
         Shell.ActionMode.NORMAL,
         () => {
-            activate().catch(e => logError(e, 'Failed to activate ddterm by keybinding'));
+            activate().catch(e => log_error(e, 'Failed to activate ddterm by keybinding'));
         }
     );
 

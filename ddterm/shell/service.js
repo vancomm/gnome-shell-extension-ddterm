@@ -23,6 +23,7 @@ const { GObject, Gio } = imports.gi;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { subprocess } = Me.imports.ddterm.shell;
+const { message } = Me.imports.ddterm.util.logger;
 
 var Service = GObject.registerClass(
     {
@@ -132,7 +133,7 @@ var Service = GObject.registerClass(
             if (this._bus_name_owner === owner)
                 return;
 
-            printerr(`${this.bus_name}: name owner changed to ${JSON.stringify(owner)}`);
+            message(`${this.bus_name}: name owner changed to ${JSON.stringify(owner)}`);
             this._bus_name_owner = owner;
             this.notify('bus-name-owner');
             this.notify('is-registered');

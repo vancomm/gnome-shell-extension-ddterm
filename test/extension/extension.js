@@ -28,11 +28,8 @@ const ModalDialog = imports.ui.modalDialog;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
 const ddterm = imports.ui.main.extensionManager.lookup('ddterm@amezin.github.com');
-const { extension, wm } = ddterm.imports.ddterm.shell;
-const { logger } = ddterm.imports.ddterm.util;
-
-const LOG_DOMAIN = 'ddterm-test';
-const { message, info } = logger.context(LOG_DOMAIN, 'ddterm.ExtensionTest');
+const { extension } = ddterm.imports.ddterm.shell;
+const { message, info, domain } = ddterm.imports.ddterm.util.logger;
 
 function get_monitor_manager() {
     if (Meta.MonitorManager.get)
@@ -198,7 +195,7 @@ class ExtensionTestDBusInterface {
 const teardown = [];
 
 function init() {
-    GLib.setenv('G_MESSAGES_DEBUG', [LOG_DOMAIN, wm.LOG_DOMAIN].join(' '), false);
+    GLib.setenv('G_MESSAGES_DEBUG', domain(), false);
 }
 
 function enable() {

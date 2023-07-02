@@ -21,6 +21,9 @@
 
 const { GLib, GObject, Gio, Meta } = imports.gi;
 
+const Me = imports.misc.extensionUtils.getCurrentExtension();
+const { message, warning } = Me.imports.ddterm.util.logger;
+
 const SIGTERM = 15;
 
 var Subprocess = GObject.registerClass(
@@ -53,11 +56,12 @@ var Subprocess = GObject.registerClass(
                     const signum = this.g_subprocess.get_term_sig();
                     const strsig = GLib.strsignal(signum);
 
-                    printerr(`${name} killed by signal ${signum} (${strsig})`);
+                    warning(`${name} killed by signal ${signum} (${strsig})`);
                 } else {
                     const status = this.g_subprocess.get_exit_status();
+                    const logger = this.g_subprocess.get_successful() ? message : warning;
 
-                    printerr(`${name} exited with status ${status}`);
+                    logger(`${name} exited with status ${status}`);
                 }
             });
         }
@@ -106,9 +110,9 @@ function spawn(argv) {
     subprocess_launcher.set_environ(context.get_environment());
 
     if (wayland_client)
-        printerr(`Starting wayland client subprocess: ${JSON.stringify(argv)}`);
+        message(`Starting wayland client subprocess: ${JSON.stringify(argv)}`);
     else
-        printerr(`Starting subprocess: ${JSON.stringify(argv)}`);
+        message(`Starting subprocess: ${JSON.stringify(argv)}`);
 
     if (wayland_client) {
         return new Subprocess({

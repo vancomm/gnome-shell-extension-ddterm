@@ -24,11 +24,8 @@ const Main = imports.ui.main;
 const WM = imports.ui.windowManager;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
-const { logger } = Me.imports.ddterm.util;
+const { debug, log_error } = Me.imports.ddterm.util.logger;
 const { ConnectionSet } = Me.imports.ddterm.shell.connectionset;
-
-var LOG_DOMAIN = 'ddterm-wm';
-const { debug } = logger.context(LOG_DOMAIN, 'ddterm.WM');
 
 const MOUSE_RESIZE_GRABS = [
     Meta.GrabOp.RESIZING_NW,
@@ -213,12 +210,12 @@ var WindowManager = GObject.registerClass(
 
         _check_current_window(match = null) {
             if (this.current_window === null) {
-                logError(new Error('current_window should be non-null'));
+                log_error(new Error('current_window should be non-null'));
                 return false;
             }
 
             if (match !== null && this.current_window !== match) {
-                logError(
+                log_error(
                     new Error(`current_window should be ${match}, but it is ${this.current_window}`)
                 );
 

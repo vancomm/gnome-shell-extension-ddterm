@@ -23,6 +23,7 @@ const { GLib, GObject, Gio } = imports.gi;
 const ByteArray = imports.byteArray;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
+const { log_error } = Me.imports.ddterm.util.logger;
 
 function to_gio_file(file_or_path) {
     // `<string> instanceof Gio.File` causes a crash!
@@ -53,7 +54,7 @@ class File {
                 return existing_file.load_contents(null)[1];
             } catch (ex) {
                 if (!ex.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND))
-                    logError(ex, `Can't read ${JSON.stringify(existing_file.get_path())}`);
+                    log_error(ex, `Can't read ${JSON.stringify(existing_file.get_path())}`);
             }
         }
 
@@ -87,7 +88,7 @@ class File {
             this.target_file.delete(null);
         } catch (e) {
             if (!e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND))
-                logError(e, `Can't delete ${JSON.stringify(this.target_file.get_path())}`);
+                log_error(e, `Can't delete ${JSON.stringify(this.target_file.get_path())}`);
         }
     }
 }

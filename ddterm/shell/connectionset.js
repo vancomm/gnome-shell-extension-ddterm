@@ -19,6 +19,9 @@
 
 'use strict';
 
+const Me = imports.misc.extensionUtils.getCurrentExtension();
+const { critical } = Me.imports.ddterm.util.logger;
+
 /* exported ConnectionSet */
 
 var ConnectionSet = class ConnectionSet {
@@ -56,7 +59,7 @@ var ConnectionSet = class ConnectionSet {
         const object_handlers = this.connections.get(match_object);
 
         if (object_handlers === null) {
-            printerr(`No handlers for object=${match_object} found in group ${this}`);
+            critical(`No handlers for object=${match_object} found in group ${this}`);
             return;
         }
 
@@ -73,7 +76,7 @@ var ConnectionSet = class ConnectionSet {
         if (object_handlers.delete(match_handler_id)) {
             match_object.disconnect(match_handler_id);
         } else {
-            printerr(
+            critical(
                 `No handler with id=${match_handler_id} found` +
                 ` for object=${match_object} in group ${this}`
             );
