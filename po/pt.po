@@ -7,13 +7,16 @@ msgstr ""
 "Project-Id-Version: ddterm\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-07-08 20:01+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2023-07-11 07:04+0000\n"
+"Last-Translator: Cezar Cruz <cezarcruz@outlook.com>\n"
+"Language-Team: Portuguese <https://hosted.weblate.org/projects/"
+"gnome-shell-extension-ddterm/extension/pt/>\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.0-dev\n"
 
 #: ddterm/app/appwindow.js:103
 msgid "Drop Down Terminal"
@@ -31,15 +34,15 @@ msgstr ""
 
 #: ddterm/app/dependencies-notification.js:141
 msgid "Please install the following packages:"
-msgstr ""
+msgstr "Por favor, instale os seguintes pacotes:"
 
 #: ddterm/app/dependencies-notification.js:149
 msgid "Please install packages that provide the following files:"
-msgstr ""
+msgstr "Por favor, instale os pacotes que proveem os seguintes arquivos:"
 
 #: ddterm/app/dependencies-notification.js:162
 msgid "Missing dependencies"
-msgstr ""
+msgstr "Dependências faltando"
 
 #: ddterm/app/glade/terminalpage.ui:162
 msgid "Case Sensitive"
@@ -59,34 +62,34 @@ msgstr ""
 
 #: ddterm/app/glade/terminalpage.ui:214
 msgid "Regular Expression"
-msgstr ""
+msgstr "Expressão Regular"
 
 #: ddterm/app/glade/terminalpage.ui:245
 msgid "Close Search Bar"
-msgstr ""
+msgstr "Fechar a Barra de Busca"
 
 #: ddterm/app/glade/terminalpage.ui:248 ddterm/app/menus.ui:76
 #: ddterm/app/menus.ui:175
 msgid "Close"
-msgstr ""
+msgstr "Fechar"
 
 #: ddterm/app/glade/terminalpage.ui:264 ddterm/app/glade/terminalpage.ui:267
 #: ddterm/pref/glade/prefs-shortcuts.ui:248
 msgid "Find Next"
-msgstr ""
+msgstr "Encontrar próximo"
 
 #: ddterm/app/glade/terminalpage.ui:283 ddterm/app/glade/terminalpage.ui:286
 #: ddterm/pref/glade/prefs-shortcuts.ui:255
 msgid "Find Previous"
-msgstr ""
+msgstr "Encontrar anterior"
 
 #: ddterm/app/menus.ui:25
 msgid "Open Hyperlink"
-msgstr ""
+msgstr "Abrir o Hyperlink"
 
 #: ddterm/app/menus.ui:30
 msgid "Copy Hyperlink Address"
-msgstr ""
+msgstr "Copiar o endereço do Hyperlink"
 
 #: ddterm/app/menus.ui:35
 msgid "Copy File Path"
