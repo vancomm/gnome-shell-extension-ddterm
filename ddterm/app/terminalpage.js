@@ -22,7 +22,7 @@
 /* exported TerminalPage TerminalSettings */
 
 const { GLib, GObject, Gio, Gdk, Gtk, Pango, Vte } = imports.gi;
-const { pcre2, resources, search, tablabel, tcgetpgrp, urldetect_patterns } = imports.ddterm.app;
+const { pcre2, resources, search, tablabel, terminal, urldetect_patterns } = imports.ddterm.app;
 const { translations } = imports.ddterm.util;
 
 function parse_rgba(str) {
@@ -140,14 +140,13 @@ var TerminalPage = GObject.registerClass(
 
             this.clipboard = Gtk.Clipboard.get_default(Gdk.Display.get_default());
             this.primary_selection = Gtk.Clipboard.get(Gdk.Atom.intern('PRIMARY', true));
-            this.child_pid = null;
 
             const terminal_with_scrollbar = new Gtk.Box({
                 visible: true,
                 orientation: Gtk.Orientation.HORIZONTAL,
             });
 
-            this.terminal = new Vte.Terminal({ visible: true });
+            this.terminal = new terminal.Terminal({ visible: true });
             terminal_with_scrollbar.pack_start(this.terminal, true, true, 0);
 
             this.scrollbar = new Gtk.Scrollbar({
@@ -524,18 +523,6 @@ var TerminalPage = GObject.registerClass(
             }
         }
 
-        get_cwd() {
-            const uri = this.terminal.current_directory_uri;
-            if (uri)
-                return GLib.filename_from_uri(uri)[0];
-
-            try {
-                return GLib.file_read_link(`/proc/${this.child_pid}/cwd`);
-            } catch {
-                return null;
-            }
-        }
-
         spawn(cwd = null) {
             let argv;
             let spawn_flags;
@@ -563,23 +550,7 @@ var TerminalPage = GObject.registerClass(
                     spawn_flags |= GLib.SpawnFlags.SEARCH_PATH_FROM_ENVP;
             }
 
-            this.terminal.spawn_async(
-                Vte.PtyFlags.DEFAULT,
-                cwd,
-                argv,
-                null,
-                spawn_flags,
-                null,
-                -1,
-                null,
-                (terminal, pid, error) => {
-                    if (error)
-                        terminal.feed(error.message);
-
-                    if (pid)
-                        this.child_pid = pid;
-                }
-            );
+            this.terminal.spawn(argv, spawn_flags, cwd);
         }
 
         copy() {
@@ -721,24 +692,12 @@ var TerminalPage = GObject.registerClass(
             this.search_bar.reveal_child = true;
         }
 
-        has_foreground_process() {
-            const pty = this.terminal.get_pty();
-
-            if (!pty)
-                return false;
-
-            try {
-                return tcgetpgrp.tcgetpgrp(pty.get_fd()) !== this.child_pid;
-            } catch (ex) {
-                if (!(ex instanceof tcgetpgrp.InterpreterNotFoundError))
-                    logError(ex, "Can't check foreground process group");
-
-                return false;
-            }
+        get_cwd() {
+            return this.terminal.get_cwd();
         }
 
         close() {
-            if (!this.has_foreground_process()) {
+            if (!this.terminal.has_foreground_process()) {
                 this.destroy();
                 return;
             }
