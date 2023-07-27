@@ -36,7 +36,7 @@ pytest==7.4.0
     #   pytest-metadata
     #   pytest-rerunfailures
     #   pytest-xdist
-pytest-github-actions-annotate-failures==0.2.0
+pytest-github-actions-annotate-failures @ git+https://github.com/amezin/pytest-github-actions-annotate-failures.git@pytest_runtest_logreport
     # via -r pypi.in
 pytest-html==3.2.0
     # via -r pypi.in
