@@ -194,6 +194,13 @@ var Application = GObject.registerClass(
                 const heap_dumper = new heapdump.HeapDumper(this.resources);
                 heap_dumper.dbus.export(this.get_dbus_connection(), this.get_dbus_object_path());
             }
+
+            const connection = this.get_dbus_connection();
+
+            this.dbus_object_manager = new Gio.DBusObjectManagerServer({
+                object_path: `${this.get_dbus_object_path()}`,
+                connection,
+            });
         }
 
         activate() {
@@ -254,6 +261,7 @@ var Application = GObject.registerClass(
                 terminal_settings: this.terminal_settings,
                 extension_dbus: this.extension_dbus,
                 resources: this.resources,
+                dbus_object_manager: this.dbus_object_manager,
             });
 
             this.window.connect('destroy', source => {
